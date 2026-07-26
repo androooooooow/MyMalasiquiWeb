@@ -3,7 +3,17 @@ import pool from "../config/db.js";
 
 export const protect = async (req, res, next) => {
     try{
-        const token = req.cookies.token;
+        // 1. Check Authorization header (mobile app sends Bearer tokens)
+        let token;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            token = authHeader.split(" ")[1];
+        }
+
+        // 2. Fall back to cookie (web app uses httpOnly cookies)
+        if (!token) {
+            token = req.cookies.token;
+        }
 
         if (!token) {
             return res.status(401).json({message: "Not authorized, no token"});
