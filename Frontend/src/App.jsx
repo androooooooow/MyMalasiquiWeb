@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
-import Home from './pages/Home';
+import CitizenDashboard from './pages/citizen_dashboard';
+import RespondentDashboard from './pages/respondent_dashboard';
+import AdminDashboard from './pages/admin/admin_dashboard';
 import Login from './auth/Login';
 import Register from './auth/Register';
 import { fetchCurrentUser } from './api/auth';
@@ -33,12 +35,41 @@ function App() {
     );
   }
 
+  function homeRedirect() {
+    if (!user) return '/login';
+    if (user.role === 'respondent') return '/respondent';
+    if (user.role === 'citizen') return '/citizen';
+    if (user.role === 'admin') return '/admin';
+    return '/login';
+  }
+
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Navigate to={homeRedirect()} replace />} />
         <Route
-          path="/"
-          element={user ? <Home user={user} onLogout={() => setUser(null)} /> : <Navigate to="/login" replace />}
+          path="/respondent"
+          element={
+            user?.role === 'respondent'
+              ? <RespondentDashboard user={user} onLogout={() => setUser(null)} />
+              : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/citizen"
+          element={
+            user?.role === 'citizen'
+              ? <CitizenDashboard user={user} onLogout={() => setUser(null)} />
+              : <Navigate to="/" replace />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            user?.role === 'admin'
+              ? <AdminDashboard user={user} onLogout={() => setUser(null)} />
+              : <Navigate to="/" replace />
+          }
         />
         <Route
           path="/login"
@@ -49,7 +80,7 @@ function App() {
           element={user ? <Navigate to="/" replace /> : <Register onAuthenticated={setUser} />}
         />
         <Route path="/Register" element={<Navigate to="/register" replace />} />
-        <Route path="*" element={<Navigate to={user ? '/' : '/login'} replace />} />
+        <Route path="*" element={<Navigate to={homeRedirect()} replace />} />
       </Routes>
     </Router>
   );

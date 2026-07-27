@@ -1,0 +1,672 @@
+/*
+  Malasiqui Rescue — citizen dashboard
+  Palette:
+    --msq-ink:      #1C2321  (text)
+    --msq-paper:    #F7F6F2  (page background)
+    --msq-teal:     #0F5C5C  (brand / primary)
+    --msq-teal-dark:#0A3F3F
+    --msq-sage:     #DCE8E3  (card fill)
+    --msq-line:     #D8DAD3  (hairline borders)
+    --msq-amber:    #C9752E  (reserved for Emergency only)
+    --msq-amber-tint:#F6E7D8
+*/
+
+.citizen-shell {
+  --msq-ink: #1c2321;
+  --msq-paper: #f7f6f2;
+  --msq-teal: #0f5c5c;
+  --msq-teal-dark: #0a3f3f;
+  --msq-sage: #dce8e3;
+  --msq-line: #d8dad3;
+  --msq-amber: #c9752e;
+  --msq-amber-tint: #f6e7d8;
+
+  display: flex;
+  min-height: 100vh;
+  background: var(--msq-paper);
+  color: var(--msq-ink);
+  font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+}
+
+.citizen-shell__skip {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  background: var(--msq-teal);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  z-index: 100;
+}
+.citizen-shell__skip:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+/* ---------- Sidebar ---------- */
+
+.citizen-sidebar {
+  width: 264px;
+  flex-shrink: 0;
+  background: var(--msq-teal-dark);
+  color: #eef4f2;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1.1rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.citizen-sidebar__brand {
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+  padding: 0 0.4rem;
+}
+
+.citizen-sidebar__brand .dashboard-brand__mark {
+  background: var(--msq-teal);
+  color: #fff;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.citizen-sidebar__wordmark {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  color:white;
+}
+
+.citizen-nav {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.citizen-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.citizen-nav__item {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.8rem 0.65rem 1rem;
+  border: none;
+  background: transparent;
+  color: #cfe0db;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.citizen-nav__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.citizen-nav__item:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.citizen-nav__item--active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.citizen-nav__tick {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.citizen-nav__item--active .citizen-nav__tick {
+  background: var(--msq-amber);
+}
+
+.citizen-nav__icon {
+  flex-shrink: 0;
+}
+
+.citizen-sidebar__footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.citizen-sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+  padding: 0 0.2rem;
+}
+
+.citizen-sidebar__avatar {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: var(--msq-teal);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.citizen-sidebar__userinfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.citizen-sidebar__username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.citizen-sidebar__useremail {
+  font-size: 0.78rem;
+  color: #a9c4bd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.citizen-sidebar__logout {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.citizen-sidebar__logout:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.citizen-sidebar__logout:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.citizen-sidebar__scrim {
+  display: none;
+}
+
+/* ---------- Top bar (mobile) ---------- */
+
+.citizen-topbar {
+  display: none;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  background: var(--msq-paper);
+  border-bottom: 1px solid var(--msq-line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.citizen-topbar__menu {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 2.2rem;
+  height: 2.2rem;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--msq-line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.citizen-topbar__menu span {
+  width: 16px;
+  height: 2px;
+  background: var(--msq-ink);
+  border-radius: 1px;
+}
+
+.citizen-topbar__title {
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ---------- Main column ---------- */
+
+.citizen-main-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.citizen-main {
+  flex: 1;
+  padding: 3rem clamp(1.25rem, 4vw, 3.5rem);
+  max-width: 880px;
+}
+
+.citizen-page-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  margin: 0.2rem 0 0.6rem;
+  line-height: 1.15;
+}
+
+.citizen-page-lede {
+  color: #4a534f;
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 60ch;
+  margin-bottom: 2rem;
+}
+
+.dashboard-card__eyebrow {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--msq-teal);
+  margin: 0;
+}
+
+.citizen-page-eyebrow--urgent {
+  color: var(--msq-amber);
+}
+
+/* ---------- Home: quick links ---------- */
+
+.citizen-quicklinks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.citizen-quicklink {
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--msq-line);
+  border-radius: 14px;
+  padding: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: relative;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.citizen-quicklink:hover {
+  border-color: var(--msq-teal);
+  transform: translateY(-2px);
+}
+
+.citizen-quicklink:focus-visible {
+  outline: 2px solid var(--msq-teal);
+  outline-offset: 2px;
+}
+
+.citizen-quicklink__title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.citizen-quicklink__body {
+  font-size: 0.88rem;
+  color: #5c655f;
+  line-height: 1.5;
+  padding-right: 1.5rem;
+}
+
+.citizen-quicklink__arrow {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.1rem;
+  color: var(--msq-teal);
+  font-size: 1.1rem;
+}
+
+/* ---------- Profile ---------- */
+
+.citizen-profile-list {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--msq-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.citizen-profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--msq-line);
+}
+
+.citizen-profile-row:last-child {
+  border-bottom: none;
+}
+
+.citizen-profile-row dt {
+  color: #5c655f;
+  font-size: 0.88rem;
+}
+
+.citizen-profile-row dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ---------- Emergency ---------- */
+
+.citizen-hotline-list {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.citizen-hotline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid var(--msq-line);
+  border-left: 4px solid var(--msq-amber);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+}
+
+.citizen-hotline__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.citizen-hotline__name {
+  font-weight: 600;
+}
+
+.citizen-hotline__note {
+  font-size: 0.85rem;
+  color: #5c655f;
+}
+
+.citizen-hotline__number {
+  font-weight: 700;
+  color: var(--msq-amber);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.citizen-hotline__number:hover {
+  text-decoration: underline;
+}
+
+.citizen-address-card {
+  background: var(--msq-amber-tint);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+}
+
+.citizen-address-card__label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: #8a5321;
+  margin-bottom: 0.3rem;
+}
+
+.citizen-address-card__value {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ---------- Knowledge ---------- */
+
+.citizen-guide-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.citizen-guide {
+  background: var(--msq-sage);
+  border-radius: 14px;
+  padding: 1.2rem 1.3rem;
+}
+
+.citizen-guide__title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.05rem;
+  margin: 0 0 0.4rem;
+}
+
+.citizen-guide__body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #2c332f;
+}
+
+/* ---------- Chats ---------- */
+
+.citizen-chat-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  border: 1px solid var(--msq-line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  min-height: 420px;
+}
+
+.citizen-thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  border-right: 1px solid var(--msq-line);
+  overflow-y: auto;
+}
+
+.citizen-thread {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.citizen-thread:hover {
+  background: var(--msq-paper);
+}
+
+.citizen-thread--active {
+  background: var(--msq-sage);
+}
+
+.citizen-thread__name {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.citizen-thread__preview {
+  font-size: 0.82rem;
+  color: #5c655f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.citizen-thread__time {
+  font-size: 0.74rem;
+  color: #8a9188;
+}
+
+.citizen-chat-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.citizen-chat-panel__header {
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--msq-line);
+  font-weight: 600;
+}
+
+.citizen-chat-panel__body {
+  flex: 1;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.citizen-chat-bubble {
+  max-width: 75%;
+  padding: 0.6rem 0.9rem;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.citizen-chat-bubble--them {
+  align-self: flex-start;
+  background: var(--msq-paper);
+  border: 1px solid var(--msq-line);
+}
+
+.citizen-chat-bubble--me {
+  align-self: flex-end;
+  background: var(--msq-teal);
+  color: #fff;
+}
+
+.citizen-chat-panel__composer {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--msq-line);
+}
+
+.citizen-chat-panel__composer input {
+  flex: 1;
+  border: 1px solid var(--msq-line);
+  border-radius: 20px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.citizen-chat-panel__composer button {
+  border: none;
+  background: var(--msq-teal);
+  color: #fff;
+  border-radius: 20px;
+  padding: 0.5rem 1.1rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.citizen-chat-panel__empty {
+  padding: 2rem;
+  color: #5c655f;
+  text-align: center;
+}
+
+/* ---------- Responsive: mobile ---------- */
+
+@media (max-width: 860px) {
+  .citizen-topbar {
+    display: flex;
+  }
+
+  .citizen-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 180ms ease;
+    z-index: 40;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .citizen-sidebar--open {
+    transform: translateX(0);
+  }
+
+  .citizen-sidebar__scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 18, 0.4);
+    z-index: 30;
+  }
+  .citizen-sidebar__scrim[hidden] {
+    display: none;
+  }
+
+  .citizen-main {
+    padding: 1.5rem 1.1rem 2.5rem;
+  }
+
+  .citizen-chat-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .citizen-thread-list {
+    border-right: none;
+    border-bottom: 1px solid var(--msq-line);
+    max-height: 180px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .citizen-sidebar,
+  .citizen-quicklink {
+    transition: none;
+  }
+}

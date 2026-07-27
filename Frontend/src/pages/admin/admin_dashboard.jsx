@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../api/auth';
+import { logout } from '../../api/auth';
 
-export default function Home({ user, onLogout }) {
+export default function AdminDashboard({ user, onLogout }) {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
@@ -27,7 +27,7 @@ export default function Home({ user, onLogout }) {
       <header className="dashboard-header">
         <div className="dashboard-brand">
           <span className="dashboard-brand__mark" aria-hidden="true">✚</span>
-          <span>Malasiqui Rescue</span>
+          <span>Rescue App</span>
         </div>
         <button className="logout-button" type="button" onClick={handleLogout} disabled={isLoggingOut}>
           {isLoggingOut ? 'Signing out…' : 'Sign out'}

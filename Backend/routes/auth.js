@@ -1,3 +1,4 @@
+// backend/routes/auth.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -23,9 +24,9 @@ const generateToken = (id) => {
 
 // register
 router.post("/register", async (req, res) => {
-    const {name, address,phone_num, email, password} = req.body;
+    const {name, address,phone_num, email, role,password} = req.body;
 
-    if (!name || !address || !phone_num || !email || !password) {
+    if (!name || !address || !phone_num || !email || !role || !password) {
         return res.status(400).json({message: "Please fill in all fields"});
     }
 
@@ -38,8 +39,8 @@ router.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await pool.query(
-        "INSERT INTO users (name, address, phone_num, email, password) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, address, phone_num, email",
-        [name, address, phone_num, email, hashedPassword]
+        "INSERT INTO users (name, address, phone_num, email, role, password, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, address, phone_num, email, role, created_at",
+        [name, address, phone_num, email, role, hashedPassword, new Date()]
     );
 
     const token = generateToken(newUser.rows[0].id);
@@ -76,7 +77,15 @@ router.post("/login", async (req, res) => {
     const token = generateToken(userData.id);
     res.cookie("token", token, cookieOptions);
 
-    res.json({user:{id: userData.id, name: userData.name, address: userData.address, phone_num: userData.phone_num, email: userData.email}, token});
+    res.json({user:{
+        id: userData.id,
+        name: userData.name,
+        address: userData.address,
+        phone_num: userData.phone_num,
+        email: userData.email,
+        role: userData.role,
+        created_at: userData.created_at
+    }, token});
 })  
 
 //me

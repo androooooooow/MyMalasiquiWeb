@@ -1,3 +1,4 @@
+// src/auth/Register.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
@@ -11,7 +12,7 @@ const accountTypes = [
     icon: '✦',
   },
   {
-    value: 'responder',
+    value: 'respondent',
     label: 'Responder',
     description: 'Coordinate and respond to emergency reports.',
     icon: '✚',
@@ -46,6 +47,7 @@ export default function Register({ onAuthenticated }) {
       phone_num: form.phone_num.trim(),
       email: form.email.trim(),
       password: form.password,
+      role: form.accountType,
     };
 
     if (Object.values(details).some((value) => !value)) {
@@ -55,8 +57,6 @@ export default function Register({ onAuthenticated }) {
 
     try {
       setIsSubmitting(true);
-      // The current API only accepts the five fields above. accountType is kept
-      // in the UI until the server has a role column and role-based rules.
       const data = await register(details);
       onAuthenticated(data.user);
       navigate('/', { replace: true });
@@ -109,9 +109,6 @@ export default function Register({ onAuthenticated }) {
               </label>
             ))}
           </div>
-          <p className="role-note">
-            Account-type permissions will activate once roles are configured on the server.
-          </p>
         </fieldset>
 
         <div className="form-grid">
