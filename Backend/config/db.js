@@ -1,23 +1,16 @@
-import {Pool} from 'pg';
 import dotenv from 'dotenv';
-
-
 dotenv.config();
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD
-})
 
-pool.on ("connect", () => {
-    console.log("Connected to PostgreSQL database");
-});
+if (!process.env.DATABASE_URL) {
+    const { DB_HOST, DB_PORT = '5432', DB_NAME, DB_USER, DB_PASSWORD } = process.env;
+    if (DB_HOST && DB_NAME && DB_USER && DB_PASSWORD) {
+        process.env.DATABASE_URL = `postgresql://${encodeURIComponent(DB_USER)}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
+    }
+}
 
-pool.on("error", (err) => {
-    console.error("Error connecting to PostgreSQL database", err);
-  
-});
+const { PrismaClient } = await import('@prisma/client');
+const prisma = globalThis.__malasiquiPrisma || new PrismaClient();
 
-export default pool;
+if (process.env.NODE_ENV !== 'production') globalThis.__malasiquiPrisma = prisma;
+
+export default prisma;

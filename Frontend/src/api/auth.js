@@ -26,6 +26,21 @@ export async function register(details) {
   return data;
 }
 
+export async function googleLogin(credential) {
+  const { data } = await api.post('/auth/google', { credential });
+  return data;
+}
+
+export async function verifyEmail(token) {
+  const { data } = await api.post('/auth/verify-email', { token });
+  return data;
+}
+
+export async function resendVerification(email) {
+  const { data } = await api.post('/auth/resend-verification', { email });
+  return data;
+}
+
 export async function logout() {
   await api.post('/auth/logout');
 }
@@ -33,5 +48,4 @@ export async function logout() {
 export function getRequestError(error, fallbackMessage) {
   return error?.response?.data?.message || fallbackMessage;
 }
-
 

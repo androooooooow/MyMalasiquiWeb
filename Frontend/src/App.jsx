@@ -5,6 +5,7 @@ import RespondentDashboard from './pages/respondent_dashboard';
 import AdminDashboard from './pages/admin/admin_dashboard';
 import Login from './auth/Login';
 import Register from './auth/Register';
+import { CheckEmail, VerifyEmail } from './auth/EmailVerification';
 import { fetchCurrentUser } from './api/auth';
 
 function App() {
@@ -77,8 +78,10 @@ function App() {
         />
         <Route
           path="/register"
-          element={user ? <Navigate to="/" replace /> : <Register onAuthenticated={setUser} />}
+          element={user ? <Navigate to="/" replace /> : <Register />}
         />
+        <Route path="/check-email" element={user ? <Navigate to="/" replace /> : <CheckEmail />} />
+        <Route path="/verify-email" element={user ? <Navigate to="/" replace /> : <VerifyEmail onAuthenticated={setUser} />} />
         <Route path="/Register" element={<Navigate to="/register" replace />} />
         <Route path="*" element={<Navigate to={homeRedirect()} replace />} />
       </Routes>

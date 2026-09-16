@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import AuthLayout from '../components/AuthLayout';
-import { getRequestError, login } from '../api/auth';
+import { getRequestError, googleLogin, login, resendVerification } from '../api/auth';
 
 function EyeIcon({ isOpen }) {
   return isOpen ? (
@@ -22,6 +23,8 @@ export default function Login({ onAuthenticated }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [notice, setNotice] = useState('');
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -31,6 +34,8 @@ export default function Login({ onAuthenticated }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
+    setNotice('');
+    setUnverifiedEmail('');
 
     const credentials = {
       email: form.email.trim(),
@@ -49,8 +54,31 @@ export default function Login({ onAuthenticated }) {
       navigate('/', { replace: true });
     } catch (requestError) {
       setError(getRequestError(requestError, 'We could not sign you in. Please try again.'));
+      if (requestError?.response?.data?.requiresVerification) {
+        setUnverifiedEmail(requestError.response.data.email || credentials.email);
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleGoogleSuccess(response) {
+    setError('');
+    try {
+      const data = await googleLogin(response.credential);
+      onAuthenticated(data.user);
+      navigate('/', { replace: true });
+    } catch (requestError) {
+      setError(getRequestError(requestError, 'Google sign-in was not completed.'));
+    }
+  }
+
+  async function handleResend() {
+    try {
+      const data = await resendVerification(unverifiedEmail);
+      setNotice(data.message);
+    } catch (requestError) {
+      setError(getRequestError(requestError, 'We could not resend the verification email.'));
     }
   }
 
@@ -72,6 +100,7 @@ export default function Login({ onAuthenticated }) {
             <p>{error}</p>
           </div>
         )}
+        {notice && <div className="auth-notice" role="status">{notice}</div>}
 
         <label className="form-field" htmlFor="login-email">
           <span>Email address</span>
@@ -116,6 +145,23 @@ export default function Login({ onAuthenticated }) {
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
+
+        {unverifiedEmail && (
+          <button className="auth-secondary" type="button" onClick={handleResend}>
+            Resend verification email
+          </button>
+        )}
+
+        <div className="auth-divider"><span>or continue with</span></div>
+        <div className="google-button">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Google sign-in was cancelled or unavailable.')}
+            text="signin_with"
+            shape="rectangular"
+            width="360"
+          />
+        </div>
       </form>
     </AuthLayout>
   );

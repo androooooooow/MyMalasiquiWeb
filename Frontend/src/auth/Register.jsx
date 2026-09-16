@@ -19,7 +19,7 @@ const accountTypes = [
   },
 ];
 
-export default function Register({ onAuthenticated }) {
+export default function Register() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     accountType: 'citizen',
@@ -58,8 +58,7 @@ export default function Register({ onAuthenticated }) {
     try {
       setIsSubmitting(true);
       const data = await register(details);
-      onAuthenticated(data.user);
-      navigate('/', { replace: true });
+      navigate(`/check-email?email=${encodeURIComponent(data.email)}`, { replace: true });
     } catch (requestError) {
       setError(getRequestError(requestError, 'We could not create your account. Please try again.'));
     } finally {
@@ -182,7 +181,10 @@ export default function Register({ onAuthenticated }) {
               type="password"
               autoComplete="new-password"
               minLength="8"
-              placeholder="Use at least 8 characters"
+              maxLength="72"
+              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,72}"
+              title="Use 8–72 characters with uppercase, lowercase, and a number"
+              placeholder="8+ chars, upper/lowercase and a number"
               value={form.password}
               onChange={handleChange}
               required
@@ -193,6 +195,7 @@ export default function Register({ onAuthenticated }) {
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Creating account…' : 'Create account'}
         </button>
+        <p className="form-security-note">We’ll email you a secure link. Your dashboard stays locked until you verify it.</p>
       </form>
     </AuthLayout>
   );

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import pool from "../config/db.js";
+import prisma from "../config/db.js";
 
 export const protect = async (req, res, next) => {
     try{
@@ -21,16 +21,18 @@ export const protect = async (req, res, next) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const user = await pool.query("SELECT id, name, address, phone_num, email, role FROM users WHERE id = $1", [decoded.id]);
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { id: true, name: true, address: true, phoneNum: true, email: true, role: true, emailVerifiedAt: true },
+        });
 
-        if(user.rows.length === 0) {
-            return res.status(401).json({message: "Not authorized, user not found"});
+        if (!user || !user.emailVerifiedAt) {
+            return res.status(401).json({message: "Not authorized"});
         }
 
-        req.user = user.rows[0];
+        req.user = { id: user.id, name: user.name, address: user.address, phone_num: user.phoneNum, email: user.email, role: user.role };
         next();
     }catch (error) {
-        console.error(error);
         res.status(401).json({message: "Not authorized"});
     }
 }
