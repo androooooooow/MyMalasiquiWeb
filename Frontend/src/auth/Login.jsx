@@ -19,6 +19,7 @@ function EyeIcon({ isOpen }) {
 
 export default function Login({ onAuthenticated }) {
   const navigate = useNavigate();
+  const googleEnabled = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -153,15 +154,18 @@ export default function Login({ onAuthenticated }) {
         )}
 
         <div className="auth-divider"><span>or continue with</span></div>
-        <div className="google-button">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setError('Google sign-in was cancelled or unavailable.')}
-            text="signin_with"
-            shape="rectangular"
-            width="360"
-          />
-        </div>
+        {googleEnabled ? (
+          <div className="google-button">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Google sign-in was cancelled or unavailable.')}
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
+        ) : (
+          <p className="auth-config-note">Google sign-in will appear after its client ID is configured.</p>
+        )}
       </form>
     </AuthLayout>
   );

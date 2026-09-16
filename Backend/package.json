@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:dev": "prisma migrate dev"
+    "db:generate": "node scripts/prisma.js generate",
+    "db:migrate": "node scripts/prisma.js migrate deploy",
+    "db:dev": "node scripts/prisma.js migrate dev"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +16,7 @@
   "type": "module",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "@prisma/client": "^6.16.2",
+    "@prisma/client": "6.12.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
-    "prisma": "^6.16.2"
+    "prisma": "6.12.0"
   }
 }

@@ -208,7 +208,12 @@ router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res
         const token = issueSession(res, user);
         return res.json({ user: publicUser(user), token });
     } catch (error) {
-        if (error?.message?.includes('Token used too late') || error?.message?.includes('Wrong recipient')) {
+        if (
+            error?.message?.includes('Token used too late')
+            || error?.message?.includes('Wrong recipient')
+            || error?.message?.includes('Invalid token')
+            || error?.message?.includes('Wrong number of segments')
+        ) {
             return res.status(401).json({ message: 'Google sign-in expired or is invalid. Please try again.' });
         }
         next(error);
