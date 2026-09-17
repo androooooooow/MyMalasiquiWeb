@@ -28,6 +28,12 @@ const statusSchema = z.object({
     status: z.enum(['EN_ROUTE', 'RESOLVED']),
 }).strict();
 
+const responderLocationSchema = z.object({
+    latitude: z.number().finite().min(-90).max(90),
+    longitude: z.number().finite().min(-180).max(180),
+    accuracyMeters: z.number().int().min(0).max(50000000),
+}).strict();
+
 const idSchema = z.object({ id: z.string().cuid('Invalid emergency request') });
 
 const emergencyInclude = {
@@ -49,12 +55,23 @@ router.use(protect);
 router.post('/', allowRoles('citizen'), validate(createEmergencySchema), async (req, res, next) => {
     try {
         const { landmark, callbackPhone, ...details } = req.validatedBody;
+        const activeRequest = await prisma.emergencyRequest.findFirst({
+            where: { citizenId: req.user.id, status: { in: ['PENDING', 'ACCEPTED', 'EN_ROUTE'] } },
+            select: { id: true },
+        });
+        if (activeRequest) {
+            return res.status(409).json({
+                message: 'You already have an active emergency request. Wait until it is resolved before creating another one.',
+                activeRequestId: activeRequest.id,
+            });
+        }
         const emergency = await prisma.emergencyRequest.create({
             data: {
                 ...details,
                 landmark: landmark || null,
                 callbackPhone: callbackPhone || req.user.phone_num || null,
                 citizenId: req.user.id,
+                activeCitizenId: req.user.id,
             },
             include: emergencyInclude,
         });
@@ -62,6 +79,22 @@ router.post('/', allowRoles('citizen'), validate(createEmergencySchema), async (
             message: 'Emergency request sent to the responder queue.',
             emergency,
         });
+    } catch (error) {
+        if (error?.code === 'P2002' && error?.meta?.target?.includes?.('active_citizen_id')) {
+            return res.status(409).json({ message: 'You already have an active emergency request.' });
+        }
+        next(error);
+    }
+});
+
+router.get('/active', allowRoles('citizen'), async (req, res, next) => {
+    try {
+        const emergency = await prisma.emergencyRequest.findFirst({
+            where: { citizenId: req.user.id, status: { in: ['PENDING', 'ACCEPTED', 'EN_ROUTE'] } },
+            include: emergencyInclude,
+            orderBy: { createdAt: 'desc' },
+        });
+        return res.json({ emergency });
     } catch (error) {
         next(error);
     }
@@ -141,13 +174,47 @@ router.patch('/:id/status', allowRoles('respondent'), validate(statusSchema), as
         if (!transitionAllowed) {
             return res.status(409).json({ message: `Cannot change this request from ${current.status} to ${nextStatus}.` });
         }
+        if (nextStatus === 'EN_ROUTE' && (current.responderLatitude === null || current.responderLongitude === null)) {
+            return res.status(400).json({ message: 'Share your current location before marking this request en route.' });
+        }
 
         const emergency = await prisma.emergencyRequest.update({
             where: { id },
-            data: { status: nextStatus, resolvedAt: nextStatus === 'RESOLVED' ? new Date() : null },
+            data: {
+                status: nextStatus,
+                resolvedAt: nextStatus === 'RESOLVED' ? new Date() : null,
+                activeCitizenId: nextStatus === 'RESOLVED' ? null : current.activeCitizenId,
+            },
             include: emergencyInclude,
         });
         return res.json({ message: 'Emergency status updated.', emergency });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.patch('/:id/responder-location', allowRoles('respondent'), validate(responderLocationSchema), async (req, res, next) => {
+    try {
+        const id = parseId(req, res);
+        if (!id) return;
+        const result = await prisma.emergencyRequest.updateMany({
+            where: {
+                id,
+                assignedResponderId: req.user.id,
+                status: { in: ['ACCEPTED', 'EN_ROUTE'] },
+            },
+            data: {
+                responderLatitude: req.validatedBody.latitude,
+                responderLongitude: req.validatedBody.longitude,
+                responderAccuracyMeters: req.validatedBody.accuracyMeters,
+                responderLocationUpdatedAt: new Date(),
+            },
+        });
+        if (result.count !== 1) {
+            return res.status(404).json({ message: 'Active assigned emergency request not found.' });
+        }
+        const emergency = await prisma.emergencyRequest.findUnique({ where: { id }, include: emergencyInclude });
+        return res.json({ message: 'Responder location updated.', emergency });
     } catch (error) {
         next(error);
     }

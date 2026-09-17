@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import DashboardShell from '../components/DashboardShell';
 import AppIcon from '../components/AppIcon';
-import { acceptEmergencyRequest, fetchResponderQueue, getEmergencyError, updateEmergencyStatus } from '../api/emergencies';
+import { acceptEmergencyRequest, fetchResponderQueue, getEmergencyError, updateEmergencyStatus, updateResponderLocation } from '../api/emergencies';
 
 const NAV_ITEMS = [
   { key: 'overview', label: 'Operations', icon: 'home' },
@@ -37,6 +37,7 @@ function IncidentList({ incidents, loading, busyId, onAccept, onStatus }) {
             <small>{incident.citizen.name} · {incident.landmark || incident.citizen.address || 'GPS location provided'}</small>
             <small className="responder-incident__description">{incident.description}</small>
             <small>{incident.latitude.toFixed(6)}, {incident.longitude.toFixed(6)} · ±{incident.accuracyMeters} m</small>
+            <a className="responder-map-link" href={`https://www.google.com/maps/dir/?api=1&destination=${incident.latitude},${incident.longitude}`} target="_blank" rel="noreferrer"><AppIcon name="map" size={14} /> Open route in Google Maps</a>
           </span>
           <span className="responder-incident__actions">
             <span className={`rescue-status-pill ${incident.status === 'PENDING' ? 'rescue-status-pill--danger' : incident.status === 'ACCEPTED' ? 'rescue-status-pill--amber' : ''}`}>{incident.status.replace('_', ' ')}</span>
@@ -52,10 +53,11 @@ function IncidentList({ incidents, loading, busyId, onAccept, onStatus }) {
 }
 
 function IncidentMap({ incidents, tall = false }) {
+  const incident = incidents[0];
+  const mapUrl = incident ? `https://www.google.com/maps?q=${incident.latitude},${incident.longitude}&z=16&output=embed` : null;
   return (
-    <div className="dispatch-map" style={tall ? { minHeight: 560 } : undefined}>
-      <span className="dispatch-map__label">{incidents.length ? `${incidents.length} emergency locations received` : 'Waiting for citizen locations'}</span>
-      {incidents.slice(0, 3).map((incident, index) => <span className={`dispatch-map__pin dispatch-map__pin--${['one', 'two', 'three'][index]}`} key={incident.id}><AppIcon name="alert" size={13} /></span>)}
+    <div className={`responder-google-map${tall ? ' responder-google-map--tall' : ''}`}>
+      {mapUrl ? <><iframe className="google-map-frame" title={`Citizen location for ${incident.citizen.name}`} src={mapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /><div className="responder-google-map__bar"><span><strong>{incident.citizen.name}</strong><small>{incident.landmark || incident.citizen.address || 'Citizen GPS location'}</small></span><a className="rescue-button rescue-button--primary rescue-button--small" href={`https://www.google.com/maps/dir/?api=1&destination=${incident.latitude},${incident.longitude}`} target="_blank" rel="noreferrer"><AppIcon name="map" size={14} /> Navigate</a></div></> : <div className="emergency-map-waiting"><AppIcon name="location" size={28} /><strong>Waiting for citizen locations</strong></div>}
     </div>
   );
 }
@@ -105,13 +107,34 @@ export default function RespondentDashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
-  const loadQueue = useCallback(async () => {
-    setLoading(true); setError('');
+  const loadQueue = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true); setError('');
     try { setIncidents(await fetchResponderQueue()); }
     catch (requestError) { setError(getEmergencyError(requestError, 'The responder queue could not be loaded.')); }
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   }, []);
-  useEffect(() => { loadQueue(); }, [loadQueue]);
+  useEffect(() => {
+    loadQueue();
+    const interval = window.setInterval(() => loadQueue({ silent: true }), 5000);
+    return () => window.clearInterval(interval);
+  }, [loadQueue]);
+
+  useEffect(() => {
+    const travelling = incidents.filter((incident) => incident.status === 'EN_ROUTE' && incident.assignedResponder?.id === user.id);
+    if (!travelling.length || !navigator.geolocation) return undefined;
+    let lastSentAt = 0;
+    const watchId = navigator.geolocation.watchPosition(async (position) => {
+      if (Date.now() - lastSentAt < 8000) return;
+      lastSentAt = Date.now();
+      const location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracyMeters: Math.round(position.coords.accuracy) };
+      const updates = await Promise.allSettled(travelling.map((incident) => updateResponderLocation(incident.id, location)));
+      setIncidents((current) => current.map((incident) => {
+        const index = travelling.findIndex((item) => item.id === incident.id);
+        return index >= 0 && updates[index].status === 'fulfilled' ? updates[index].value : incident;
+      }));
+    }, () => setError('Live GPS sharing stopped. Allow location access so the citizen can track your response.'), { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [incidents, user.id]);
 
   async function acceptIncident(id) {
     setBusyId(id); setError('');
@@ -121,7 +144,15 @@ export default function RespondentDashboard({ user, onLogout }) {
   }
   async function changeStatus(id, status) {
     setBusyId(id); setError('');
-    try { const updated = await updateEmergencyStatus(id, status); setIncidents((current) => status === 'RESOLVED' ? current.filter((item) => item.id !== id) : current.map((item) => item.id === id ? updated : item)); }
+    try {
+      if (status === 'EN_ROUTE') {
+        if (!navigator.geolocation) throw new Error('Location sharing is not supported by this browser.');
+        const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }));
+        await updateResponderLocation(id, { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracyMeters: Math.round(position.coords.accuracy) });
+      }
+      const updated = await updateEmergencyStatus(id, status);
+      setIncidents((current) => status === 'RESOLVED' ? current.filter((item) => item.id !== id) : current.map((item) => item.id === id ? updated : item));
+    }
     catch (requestError) { setError(getEmergencyError(requestError, 'The emergency status could not be updated.')); }
     finally { setBusyId(''); }
   }

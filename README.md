@@ -94,6 +94,10 @@ Responder endpoints:
 
 The accept operation uses a database transaction and conditional update. If two responders act at the same time, only one can receive the request.
 
+Each citizen can have only one active request in `PENDING`, `ACCEPTED`, or `EN_ROUTE` status. This rule is enforced both by the API and a unique database lock. The citizen can create another request only after the active incident becomes `RESOLVED` or `CANCELLED`.
+
+While a response is `EN_ROUTE`, the responder dashboard shares updated responder coordinates. The citizen tracker polls the request status and displays the responder's latest GPS position. Responders can open the citizen's coordinates directly in Google Maps from the queue or dispatch map.
+
 Workflow:
 
 ```text
@@ -121,6 +125,9 @@ Citizen features:
 - Explicit browser location permission
 - Coordinate and accuracy review before submission
 - Secure submission to the backend and confirmation with request ID
+- One-active-request restriction until the incident is completed
+- Automatic status tracking for pending, accepted, and en-route stages
+- Assigned responder identity, contact information, and live GPS map
 - Safety guides, messages, and profile areas
 
 Responder features:
@@ -129,6 +136,8 @@ Responder features:
 - Citizen name, emergency details, landmark, GPS coordinates, and accuracy
 - Atomic request acceptance
 - Accepted, en-route, and resolved status actions
+- Live responder-location sharing while travelling
+- Embedded Google Maps citizen location and turn-by-turn navigation link
 - Live operational totals and incident-location preview
 - Responsive desktop and phone layouts
 

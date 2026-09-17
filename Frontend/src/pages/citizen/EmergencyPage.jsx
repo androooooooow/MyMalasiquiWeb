@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AppIcon from '../../components/AppIcon';
-import { createEmergencyRequest, getEmergencyError } from '../../api/emergencies';
+import { createEmergencyRequest, fetchActiveEmergencyRequest, getEmergencyError } from '../../api/emergencies';
 
 const SERVICES = [
   { id: 'ambulance', title: 'Ambulance', description: 'Medical emergency or serious injury', icon: 'activity', tone: 'medical' },
@@ -19,6 +19,12 @@ const INITIAL_FORM = {
   phone: '',
 };
 
+const STATUS_COPY = {
+  PENDING: { title: 'Waiting for a responder', detail: 'Your request is visible in the responder queue.', tone: 'danger' },
+  ACCEPTED: { title: 'A responder accepted your request', detail: 'The responder is preparing to travel to your location.', tone: 'amber' },
+  EN_ROUTE: { title: 'Responder is on the way', detail: 'Live responder location is shown below when available.', tone: 'active' },
+};
+
 export default function EmergencyPage() {
   const [step, setStep] = useState('service');
   const [form, setForm] = useState(INITIAL_FORM);
@@ -27,8 +33,34 @@ export default function EmergencyPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submittedEmergency, setSubmittedEmergency] = useState(null);
+  const [activeEmergency, setActiveEmergency] = useState(null);
+  const [loadingActive, setLoadingActive] = useState(true);
 
   const selectedService = SERVICES.find((service) => service.id === form.service);
+
+  const loadActiveRequest = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoadingActive(true);
+    try {
+      const emergency = await fetchActiveEmergencyRequest();
+      setActiveEmergency(emergency);
+      if (emergency) {
+        setSubmittedEmergency(emergency);
+        setStep('ready');
+      } else {
+        setStep((current) => current === 'ready' ? 'service' : current);
+      }
+    } catch (requestError) {
+      if (!silent) setError(getEmergencyError(requestError, 'Your active request could not be loaded.'));
+    } finally {
+      if (!silent) setLoadingActive(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadActiveRequest();
+    const interval = window.setInterval(() => loadActiveRequest({ silent: true }), 5000);
+    return () => window.clearInterval(interval);
+  }, [loadActiveRequest]);
 
   function selectService(service) {
     setForm((current) => ({ ...current, service }));
@@ -86,16 +118,6 @@ export default function EmergencyPage() {
     setStep('review');
   }
 
-  function resetRequest() {
-    setForm(INITIAL_FORM);
-    setLocation(null);
-    setLocationState('idle');
-    setError('');
-    setSubmitting(false);
-    setSubmittedEmergency(null);
-    setStep('service');
-  }
-
   async function submitRequest() {
     setSubmitting(true);
     setError('');
@@ -118,6 +140,7 @@ export default function EmergencyPage() {
         accuracyMeters: location.accuracy,
       });
       setSubmittedEmergency(result.emergency);
+      setActiveEmergency(result.emergency);
       setStep('ready');
     } catch (submitError) {
       setError(getEmergencyError(submitError, 'Your emergency request could not be sent. Please try again.'));
@@ -126,16 +149,42 @@ export default function EmergencyPage() {
     }
   }
 
+  if (loadingActive) {
+    return <section className="emergency-complete"><span className="app-loading__spinner" aria-hidden="true" /><h1 className="rescue-page-title">Checking your active request…</h1></section>;
+  }
+
   if (step === 'ready') {
+    const emergency = activeEmergency || submittedEmergency;
+    const status = STATUS_COPY[emergency?.status] || STATUS_COPY.PENDING;
+    const responderLocationReady = Number.isFinite(emergency?.responderLatitude) && Number.isFinite(emergency?.responderLongitude);
+    const responderMapUrl = responderLocationReady
+      ? `https://www.google.com/maps?q=${emergency.responderLatitude},${emergency.responderLongitude}&z=16&output=embed`
+      : null;
     return (
-      <section className="emergency-complete">
-        <span className="emergency-complete__icon"><AppIcon name="check" size={34} /></span>
-        <p className="rescue-eyebrow">Request sent</p>
-        <h1 className="rescue-page-title">Responders can now see your emergency.</h1>
-        <p>Your request is stored securely in the responder queue. Keep this page available for status updates and stay near the location you shared.</p>
-        {submittedEmergency && <p className="emergency-request-code">Request ID: <strong>{submittedEmergency.id}</strong> · Status: {submittedEmergency.status}</p>}
-        <div className="emergency-complete__actions">
-          <button className="rescue-button rescue-button--primary" type="button" onClick={resetRequest}>Create another request</button>
+      <section className="emergency-tracker">
+        <div className="rescue-page-head"><div><p className="rescue-eyebrow">Active emergency request</p><h1 className="rescue-page-title">{status.title}</h1><p className="rescue-page-lede">{status.detail}</p></div><span className={`rescue-status-pill rescue-status-pill--${status.tone}`}>{emergency?.status?.replace('_', ' ')}</span></div>
+        <div className="emergency-tracker__notice"><AppIcon name="alert" size={18} /><span><strong>You cannot create another request yet.</strong><small>A new request becomes available after this incident is resolved.</small></span></div>
+        <div className="emergency-tracker__layout">
+          <article className="rescue-card">
+            <header className="rescue-card__header"><h2>Response progress</h2><button className="rescue-button rescue-button--ghost rescue-button--small" type="button" onClick={() => loadActiveRequest()}>Refresh status</button></header>
+            <ol className="emergency-timeline">
+              {[
+                ['PENDING', 'Request received', 'Your incident is in the responder queue.'],
+                ['ACCEPTED', 'Responder assigned', emergency?.assignedResponder ? `${emergency.assignedResponder.name} accepted your request.` : 'Waiting for a responder.'],
+                ['EN_ROUTE', 'Responder en route', 'The responder is travelling to your GPS location.'],
+              ].map(([key, label, detail]) => {
+                const order = ['PENDING', 'ACCEPTED', 'EN_ROUTE'];
+                const complete = order.indexOf(emergency?.status) >= order.indexOf(key);
+                return <li className={complete ? 'emergency-timeline__item emergency-timeline__item--complete' : 'emergency-timeline__item'} key={key}><span><AppIcon name={complete ? 'check' : 'clock'} size={15} /></span><div><strong>{label}</strong><small>{detail}</small></div></li>;
+              })}
+            </ol>
+            <div className="emergency-tracker__details"><p><strong>Request ID</strong><span>{emergency?.id}</span></p><p><strong>Responder</strong><span>{emergency?.assignedResponder?.name || 'Not assigned yet'}</span></p><p><strong>Contact</strong><span>{emergency?.assignedResponder?.phoneNum || 'Available after assignment'}</span></p></div>
+          </article>
+          <article className="rescue-card emergency-tracker__map-card">
+            <header className="rescue-card__header"><h2>Responder live location</h2><span className="rescue-status-pill">Auto-updates</span></header>
+            {responderMapUrl ? <iframe className="google-map-frame" title="Responder live location" src={responderMapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <div className="emergency-map-waiting"><AppIcon name="location" size={28} /><strong>Waiting for responder GPS</strong><p>The map will appear when the assigned responder starts travelling.</p></div>}
+            {emergency?.responderLocationUpdatedAt && <p className="emergency-map-updated">Last GPS update: {new Date(emergency.responderLocationUpdatedAt).toLocaleTimeString()}</p>}
+          </article>
         </div>
       </section>
     );

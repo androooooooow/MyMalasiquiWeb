@@ -50,6 +50,7 @@ model EmergencyRequest {
   id                  String           @id @default(cuid())
   citizenId           Int              @map("citizen_id")
   assignedResponderId Int?             @map("assigned_responder_id")
+  activeCitizenId     Int?             @unique @map("active_citizen_id")
   service             EmergencyService
   status              EmergencyStatus  @default(PENDING)
   description         String
@@ -59,6 +60,10 @@ model EmergencyRequest {
   latitude            Float
   longitude           Float
   accuracyMeters      Int              @map("accuracy_meters")
+  responderLatitude   Float?           @map("responder_latitude")
+  responderLongitude  Float?           @map("responder_longitude")
+  responderAccuracyMeters Int?         @map("responder_accuracy_meters")
+  responderLocationUpdatedAt DateTime? @map("responder_location_updated_at")
   acceptedAt          DateTime?        @map("accepted_at")
   resolvedAt          DateTime?        @map("resolved_at")
   createdAt           DateTime         @default(now()) @map("created_at")
