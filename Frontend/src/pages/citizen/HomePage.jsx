@@ -17,7 +17,7 @@ export default function HomePage({ user, onNavigate }) {
           <h1 className="rescue-page-title">Good day, {firstName}.</h1>
           <p className="rescue-page-lede">Your safety tools, emergency requests, and community updates are ready in one place.</p>
         </div>
-        <span className="rescue-status-pill">Account ready</span>
+
       </div>
 
       <div className="citizen-overview">
@@ -36,9 +36,9 @@ export default function HomePage({ user, onNavigate }) {
         <section className="rescue-card citizen-readiness" aria-labelledby="readiness-title">
           <div className="citizen-readiness__head">
             <h2 id="readiness-title">Profile readiness</h2>
-            <span className="rescue-status-pill rescue-status-pill--amber">Review</span>
+      
           </div>
-          <div className="citizen-readiness__score"><span>72%</span></div>
+          <div className="citizen-readiness__score"><span>100%</span></div>
           <p>Complete your contact and address details so responders can identify you faster.</p>
           <div className="citizen-readiness__checks">
             <span className="citizen-readiness__check"><AppIcon name="check" size={15} /> Verified email</span>

@@ -31,8 +31,13 @@ export async function googleLogin(credential) {
   return data;
 }
 
-export async function verifyEmail(token) {
-  const { data } = await api.post('/auth/verify-email', { token });
+export async function updateProfile(profile) {
+  const { data } = await api.patch('/auth/profile', profile);
+  return data;
+}
+
+export async function verifyEmail(email, code) {
+  const { data } = await api.post('/auth/verify-email', { email, code });
   return data;
 }
 

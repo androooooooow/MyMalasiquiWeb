@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import CitizenDashboard from './pages/citizen_dashboard';
-import RespondentDashboard from './pages/respondent_dashboard';
+import RespondentDashboard from './pages/respondent/RespondentDashboard';
 import AdminDashboard from './pages/admin/admin_dashboard';
 import Login from './auth/Login';
 import Register from './auth/Register';
@@ -19,6 +19,7 @@ const previewUser = ['citizen', 'respondent', 'admin'].includes(previewRole)
       phone_num: '0912 345 6789',
       address: 'Poblacion, Malasiqui, Pangasinan',
       role: previewRole,
+      responder_unit: previewRole === 'respondent' ? 'MDRRMO' : null,
       created_at: new Date().toISOString(),
     }
   : null;
@@ -68,7 +69,7 @@ function App() {
           path="/respondent"
           element={
             user?.role === 'respondent'
-              ? <RespondentDashboard user={user} onLogout={() => setUser(null)} />
+              ? <RespondentDashboard user={user} onUserUpdated={setUser} onLogout={() => setUser(null)} />
               : <Navigate to="/" replace />
           }
         />
@@ -76,7 +77,7 @@ function App() {
           path="/citizen"
           element={
             user?.role === 'citizen'
-              ? <CitizenDashboard user={user} onLogout={() => setUser(null)} />
+              ? <CitizenDashboard user={user} onUserUpdated={setUser} onLogout={() => setUser(null)} />
               : <Navigate to="/" replace />
           }
         />
@@ -96,7 +97,7 @@ function App() {
           path="/register"
           element={user ? <Navigate to="/" replace /> : <Register />}
         />
-        <Route path="/check-email" element={user ? <Navigate to="/" replace /> : <CheckEmail />} />
+        <Route path="/check-email" element={user ? <Navigate to="/" replace /> : <CheckEmail onAuthenticated={setUser} />} />
         <Route path="/verify-email" element={user ? <Navigate to="/" replace /> : <VerifyEmail onAuthenticated={setUser} />} />
         <Route path="/Register" element={<Navigate to="/register" replace />} />
         <Route path="*" element={<Navigate to={homeRedirect()} replace />} />

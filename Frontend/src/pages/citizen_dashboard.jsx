@@ -14,14 +14,14 @@ const NAV_ITEMS = [
   { key: 'profile', label: 'My profile', icon: 'user' },
 ];
 
-export default function CitizenDashboard({ user, onLogout }) {
+export default function CitizenDashboard({ user, onLogout, onUserUpdated }) {
   const [activePage, setActivePage] = useState('home');
   const pages = {
     home: <HomePage user={user} onNavigate={setActivePage} />,
     emergency: <EmergencyPage />,
     knowledge: <KnowledgePage />,
     chats: <ChatsPage />,
-    profile: <ProfilePage user={user} />,
+    profile: <ProfilePage user={user} onUserUpdated={onUserUpdated} />,
   };
 
   return (

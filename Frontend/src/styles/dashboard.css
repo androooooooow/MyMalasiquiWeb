@@ -755,6 +755,12 @@
 .profile-row:last-child { border-bottom: 0; }
 .profile-row dt { color: var(--ink-500); font-size: 0.73rem; }
 .profile-row dd { margin: 0; font-size: 0.76rem; font-weight: 650; }
+.profile-edit-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: 1.15rem; }
+.profile-form-actions { display: flex; justify-content: flex-end; gap: 0.65rem; }
+.profile-protected-fields { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 0.7rem; color: var(--ink-600); background: #f2f7f6; font-size: 0.67rem; line-height: 1.45; }
+.profile-protected-fields svg { flex: 0 0 auto; color: var(--teal-600); }
+.profile-notice { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 1rem; padding: 0.75rem 0.9rem; border: 1px solid #b9dfd8; border-radius: 0.75rem; color: #075f58; background: #eaf7f4; font-size: 0.72rem; font-weight: 650; }
+.profile-summary .profile-summary__unit { width: fit-content; margin: 1rem auto 0; padding: 0.4rem 0.6rem; border-radius: 0.55rem; color: var(--teal-700); background: var(--teal-100); font-weight: 750; }
 
 /* Chat */
 .rescue-chat { display: grid; min-height: 520px; grid-template-columns: 300px minmax(0, 1fr); overflow: hidden; }
@@ -881,6 +887,9 @@
   .responder-google-map__bar { align-items: stretch; flex-direction: column; }
   .responder-google-map__bar .rescue-button { justify-content: center; }
   .profile-row { grid-template-columns: 1fr; gap: 0.25rem; }
+  .profile-edit-form { grid-template-columns: 1fr; }
+  .profile-form-actions { align-items: stretch; flex-direction: column-reverse; }
+  .profile-form-actions .rescue-button { justify-content: center; width: 100%; }
   .rescue-chat { grid-template-columns: 1fr; }
   .rescue-chat__threads { border-right: 0; border-bottom: 1px solid var(--line); }
   .rescue-chat__list { display: flex; overflow-x: auto; }

@@ -478,6 +478,18 @@ button:disabled {
   font-size: 0.84rem;
 }
 
+.verification-form {
+  margin-top: 1.25rem;
+}
+
+.verification-code-input {
+  min-height: 3.4rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.45rem;
+  text-align: center;
+}
+
 .auth-footer {
   margin-top: 1.45rem;
   color: #627d98;

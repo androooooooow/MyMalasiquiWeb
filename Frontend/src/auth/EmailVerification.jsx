@@ -1,23 +1,54 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import { getRequestError, resendVerification, verifyEmail } from '../api/auth';
 
-export function CheckEmail() {
+export function CheckEmail({ onAuthenticated }) {
   const [searchParams] = useSearchParams();
-  const email = searchParams.get('email') || '';
+  const navigate = useNavigate();
+  const [email, setEmail] = useState(searchParams.get('email') || '');
+  const [code, setCode] = useState('');
   const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  async function handleVerify(event) {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !/^\d{6}$/.test(code)) {
+      setError('Enter your email address and the 6-digit code from Gmail.');
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      const data = await verifyEmail(normalizedEmail, code);
+      onAuthenticated?.(data.user);
+      navigate('/', { replace: true });
+    } catch (requestError) {
+      setError(getRequestError(requestError, 'We could not verify this code.'));
+    } finally {
+      setIsVerifying(false);
+    }
+  }
 
   async function handleResend() {
-    if (!email) return;
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError('Enter your email address first.');
+      return;
+    }
     setIsSending(true);
+    setError('');
     setStatus('');
     try {
-      const data = await resendVerification(email);
+      const data = await resendVerification(normalizedEmail);
       setStatus(data.message);
-    } catch (error) {
-      setStatus(getRequestError(error, 'We could not resend the email. Please try again.'));
+    } catch (requestError) {
+      setError(getRequestError(requestError, 'We could not send a new code. Please try again.'));
     } finally {
       setIsSending(false);
     }
@@ -25,63 +56,64 @@ export function CheckEmail() {
 
   return (
     <AuthLayout
-      eyebrow="One last step"
-      title="Check your email"
-      description={email ? `We sent a verification link to ${email}. Open it to activate your account.` : 'Open the verification link in your email to activate your account.'}
+      eyebrow="Secure your account"
+      title="Verify your email"
+      description="Enter the 6-digit verification code we sent to your Gmail. You cannot enter the dashboard until verification is complete."
       footer={<p>Already verified? <Link to="/login">Sign in</Link></p>}
     >
-      <div className="verification-card">
-        <span className="verification-icon" aria-hidden="true">✓</span>
-        <p>The link expires in 30 minutes. You cannot enter a dashboard until your email is verified.</p>
-        {status && <p className="verification-status" role="status">{status}</p>}
-        {email && (
-          <button className="auth-secondary" type="button" onClick={handleResend} disabled={isSending}>
-            {isSending ? 'Sending…' : 'Resend verification email'}
-          </button>
+      <form className="auth-form verification-form" onSubmit={handleVerify}>
+        {error && (
+          <div className="auth-alert" role="alert">
+            <span aria-hidden="true">!</span>
+            <p>{error}</p>
+          </div>
         )}
-      </div>
+        {status && <div className="auth-notice" role="status">{status}</div>}
+
+        <label className="form-field" htmlFor="verification-email">
+          <span>Email address</span>
+          <input
+            className="auth-input"
+            id="verification-email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@gmail.com"
+            required
+          />
+        </label>
+
+        <label className="form-field" htmlFor="verification-code">
+          <span>6-digit verification code</span>
+          <input
+            className="auth-input verification-code-input"
+            id="verification-code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={code}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="000000"
+            aria-describedby="verification-help"
+            required
+          />
+        </label>
+        <p id="verification-help" className="form-security-note">The code expires after 10 minutes.</p>
+
+        <button className="auth-submit" type="submit" disabled={isVerifying || code.length !== 6}>
+          {isVerifying ? 'Verifying…' : 'Verify and continue'}
+        </button>
+        <button className="auth-secondary" type="button" onClick={handleResend} disabled={isSending}>
+          {isSending ? 'Sending…' : 'Send a new code'}
+        </button>
+      </form>
     </AuthLayout>
   );
 }
 
-export function VerifyEmail({ onAuthenticated }) {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const [state, setState] = useState({ status: 'loading', message: 'Verifying your email…' });
-  const hasVerified = useRef(false);
-
-  useEffect(() => {
-    if (hasVerified.current) return;
-    hasVerified.current = true;
-    const token = searchParams.get('token');
-    if (!token) {
-      setState({ status: 'error', message: 'This verification link is incomplete.' });
-      return;
-    }
-
-    verifyEmail(token)
-      .then((data) => {
-        onAuthenticated(data.user);
-        setState({ status: 'success', message: 'Your email is verified. Taking you to your dashboard…' });
-        window.setTimeout(() => navigate('/', { replace: true }), 900);
-      })
-      .catch((error) => {
-        setState({ status: 'error', message: getRequestError(error, 'We could not verify this email.') });
-      });
-  }, [navigate, onAuthenticated, searchParams]);
-
-  return (
-    <AuthLayout
-      eyebrow="Email verification"
-      title={state.status === 'success' ? 'Account verified' : state.status === 'error' ? 'Link not accepted' : 'Securing your account'}
-      description={state.message}
-      footer={state.status === 'error' ? <p><Link to="/login">Return to sign in</Link></p> : null}
-    >
-      <div className="verification-card verification-card--center" aria-live="polite">
-        <span className={`verification-icon verification-icon--${state.status}`} aria-hidden="true">
-          {state.status === 'loading' ? '' : state.status === 'success' ? '✓' : '!'}
-        </span>
-      </div>
-    </AuthLayout>
-  );
+// Keep the old route working for bookmarked verification pages.
+export function VerifyEmail(props) {
+  return <CheckEmail {...props} />;
 }

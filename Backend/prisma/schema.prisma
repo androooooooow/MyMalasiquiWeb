@@ -15,6 +15,7 @@ model User {
   phoneNum               String    @map("phone_num")
   email                  String    @unique
   role                   String
+  responderUnit          ResponderUnit? @map("responder_unit")
   password               String
   emailVerifiedAt        DateTime? @map("email_verified_at")
   emailVerificationToken String?   @unique @map("email_verification_token")
@@ -27,6 +28,14 @@ model User {
   assignedEmergencyRequests EmergencyRequest[] @relation("ResponderEmergencyRequests")
 
   @@map("users")
+  @@index([role, responderUnit])
+}
+
+enum ResponderUnit {
+  HEALTH_AMBULANCE
+  PNP_POLICE
+  BFP_FIRE
+  MDRRMO
 }
 
 enum EmergencyService {

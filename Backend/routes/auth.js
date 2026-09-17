@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import https from 'node:https';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -8,31 +9,55 @@ import { z } from 'zod';
 import prisma from '../config/db.js';
 import { protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { sendVerificationEmail } from '../services/email.js';
+import { EmailDeliveryError, isEmailDeliveryConfigured, sendVerificationEmail } from '../services/email.js';
+import { trustedCertificates } from '../config/trustedCertificates.js';
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleCertificateCache = { certificates: null, expiresAt: 0 };
+const googleIssuers = ['accounts.google.com', 'https://accounts.google.com'];
 const emailSchema = z.string().trim().toLowerCase().email('Enter a valid email address').max(254);
+const nameSchema = z.string().trim().min(2, 'Enter your full name').max(100)
+    .regex(/^[\p{L}\p{M} .'-]+$/u, 'Name contains invalid characters');
+const addressSchema = z.string().trim().min(5, 'Enter a complete address').max(250);
+const phoneSchema = z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number');
 const passwordSchema = z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(72, 'Password must be no more than 72 characters')
     .regex(/[a-z]/, 'Password must include a lowercase letter')
     .regex(/[A-Z]/, 'Password must include an uppercase letter')
     .regex(/[0-9]/, 'Password must include a number');
+const responderUnitSchema = z.enum(['HEALTH_AMBULANCE', 'PNP_POLICE', 'BFP_FIRE', 'MDRRMO']);
 
 const registerSchema = z.object({
-    name: z.string().trim().min(2, 'Enter your full name').max(100)
-        .regex(/^[\p{L}\p{M} .'-]+$/u, 'Name contains invalid characters'),
-    address: z.string().trim().min(5, 'Enter a complete address').max(250),
-    phone_num: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number'),
+    name: nameSchema,
+    address: addressSchema,
+    phone_num: phoneSchema,
     email: emailSchema,
     role: z.enum(['citizen', 'respondent'], { message: 'Choose a valid account type' }),
+    responder_unit: responderUnitSchema.optional(),
     password: passwordSchema,
-}).strict();
+}).strict().superRefine((account, context) => {
+    if (account.role === 'respondent' && !account.responder_unit) {
+        context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['responder_unit'],
+            message: 'Choose the response unit you belong to',
+        });
+    }
+});
 const loginSchema = z.object({ email: emailSchema, password: z.string().min(1).max(72) }).strict();
-const tokenSchema = z.object({ token: z.string().regex(/^[a-f0-9]{64}$/i, 'Invalid verification link') }).strict();
+const verificationCodeSchema = z.object({
+    email: emailSchema,
+    code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit verification code'),
+}).strict();
 const resendSchema = z.object({ email: emailSchema }).strict();
 const googleSchema = z.object({ credential: z.string().min(100).max(5000) }).strict();
+const profileSchema = z.object({
+    name: nameSchema,
+    address: addressSchema,
+    phone_num: phoneSchema,
+}).strict();
 
 const sensitiveLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -54,13 +79,31 @@ function generateSessionToken(id) {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 }
 
-function newVerificationToken() {
-    const token = crypto.randomBytes(32).toString('hex');
+function verificationDigest(email, code) {
+    return crypto.createHmac('sha256', process.env.JWT_SECRET)
+        .update(`${email}:${code}`)
+        .digest('hex');
+}
+
+function newVerificationCode(email) {
+    const code = crypto.randomInt(100000, 1000000).toString();
     return {
-        token,
-        digest: crypto.createHash('sha256').update(token).digest('hex'),
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        code,
+        digest: verificationDigest(email, code),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     };
+}
+
+function emailDeliveryResponse(error, res) {
+    if (!(error instanceof EmailDeliveryError)) return false;
+    const status = error.code === 'EMAIL_NOT_CONFIGURED' ? 503 : 502;
+    res.status(status).json({
+        message: error.code === 'EMAIL_NOT_CONFIGURED'
+            ? 'Email verification is not configured. Add the Gmail SMTP account and App Password to the backend.'
+            : 'The verification code could not be sent. Check the Gmail SMTP settings and try again.',
+        code: error.code,
+    });
+    return true;
 }
 
 function publicUser(user) {
@@ -71,6 +114,7 @@ function publicUser(user) {
         phone_num: user.phoneNum,
         email: user.email,
         role: user.role,
+        responder_unit: user.responderUnit,
         created_at: user.createdAt,
     };
 }
@@ -93,74 +137,141 @@ function hasErrorCode(error, codes) {
 const googleConnectionCodes = [
     'EACCES', 'ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT',
     'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'SELF_SIGNED_CERT_IN_CHAIN',
+    'GOOGLE_CERTIFICATE_HTTP', 'GOOGLE_CERTIFICATE_RESPONSE',
 ];
+
+function fetchGoogleCertificates() {
+    return new Promise((resolve, reject) => {
+        const request = https.get('https://www.googleapis.com/oauth2/v1/certs', {
+            ca: trustedCertificates,
+            // Some Windows networks reject Node's IPv6 socket with EACCES even
+            // though the same Google host is reachable over IPv4 in the browser.
+            family: 4,
+            headers: { accept: 'application/json' },
+            timeout: 10000,
+        }, (response) => {
+            let body = '';
+            response.setEncoding('utf8');
+            response.on('data', (chunk) => {
+                body += chunk;
+                if (body.length > 1024 * 1024) request.destroy(new Error('Google certificate response is too large'));
+            });
+            response.on('end', () => {
+                if (response.statusCode !== 200) {
+                    const error = new Error(`Google certificate endpoint returned ${response.statusCode}`);
+                    error.code = 'GOOGLE_CERTIFICATE_HTTP';
+                    reject(error);
+                    return;
+                }
+                try {
+                    const certificates = JSON.parse(body);
+                    const maxAge = Number(/max-age=(\d+)/i.exec(response.headers['cache-control'] || '')?.[1] || 300);
+                    resolve({ certificates, expiresAt: Date.now() + Math.max(60, maxAge) * 1000 });
+                } catch (cause) {
+                    const error = new Error('Google returned an invalid certificate response', { cause });
+                    error.code = 'GOOGLE_CERTIFICATE_RESPONSE';
+                    reject(error);
+                }
+            });
+        });
+        request.on('timeout', () => {
+            const error = new Error('Google certificate request timed out');
+            error.code = 'ETIMEDOUT';
+            request.destroy(error);
+        });
+        request.on('error', reject);
+    });
+}
+
+async function getGoogleCertificates(forceRefresh = false) {
+    if (!forceRefresh && googleCertificateCache.certificates && Date.now() < googleCertificateCache.expiresAt) {
+        return googleCertificateCache.certificates;
+    }
+    const fresh = await fetchGoogleCertificates();
+    googleCertificateCache.certificates = fresh.certificates;
+    googleCertificateCache.expiresAt = fresh.expiresAt;
+    return fresh.certificates;
+}
+
+function googleTokenKeyId(credential) {
+    try {
+        return JSON.parse(Buffer.from(credential.split('.')[0], 'base64url').toString('utf8')).kid;
+    } catch {
+        return null;
+    }
+}
 
 async function verifyGoogleCredential(credential) {
     try {
-        const ticket = await googleClient.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        let certificates = await getGoogleCertificates();
+        const keyId = googleTokenKeyId(credential);
+        if (keyId && !certificates[keyId]) certificates = await getGoogleCertificates(true);
+        const ticket = await googleClient.verifySignedJwtWithCertsAsync(
+            credential,
+            certificates,
+            process.env.GOOGLE_CLIENT_ID,
+            googleIssuers,
+        );
         return ticket.getPayload();
     } catch (error) {
-        if (!hasErrorCode(error, googleConnectionCodes)) throw error;
-
-        // Google's token-info endpoint independently validates the signature.
-        // This is a narrow fallback for Windows/proxy certificate-chain issues;
-        // the claims are still checked locally before an application session is issued.
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        try {
-            const url = new URL('https://oauth2.googleapis.com/tokeninfo');
-            url.searchParams.set('id_token', credential);
-            const response = await fetch(url, { signal: controller.signal });
-            if (!response.ok) throw error;
-            const payload = await response.json();
-            const now = Math.floor(Date.now() / 1000);
-            const issuerValid = ['accounts.google.com', 'https://accounts.google.com'].includes(payload.iss);
-            const audienceValid = payload.aud === process.env.GOOGLE_CLIENT_ID;
-            const expiryValid = Number(payload.exp) > now;
-            if (!issuerValid || !audienceValid || !expiryValid) throw new Error('Invalid Google token claims');
-            return payload;
-        } finally {
-            clearTimeout(timeout);
-        }
+        if (hasErrorCode(error, googleConnectionCodes)) throw error;
+        const invalidCredential = new Error('Google ID token is invalid', { cause: error });
+        invalidCredential.code = 'GOOGLE_INVALID_CREDENTIAL';
+        throw invalidCredential;
     }
 }
 
 router.post('/register', sensitiveLimiter, validate(registerSchema), async (req, res, next) => {
     try {
-        const { name, address, phone_num, email, role, password } = req.validatedBody;
+        const { name, address, phone_num, email, role, responder_unit, password } = req.validatedBody;
+        if (!isEmailDeliveryConfigured()) {
+            return res.status(503).json({
+                message: 'Email verification is not configured. Add the Gmail SMTP account and App Password to the backend.',
+                code: 'EMAIL_NOT_CONFIGURED',
+            });
+        }
         const existing = await prisma.user.findUnique({ where: { email } });
-        if (existing) return res.status(409).json({ message: 'An account with this email already exists.' });
+        if (existing?.emailVerifiedAt) {
+            return res.status(409).json({ message: 'An account with this email already exists. Sign in instead.' });
+        }
 
-        const verification = newVerificationToken();
-        const user = await prisma.user.create({
-            data: {
-                name, address, phoneNum: phone_num, email, role,
-                password: await bcrypt.hash(password, 12),
-                emailVerificationToken: verification.digest,
-                verificationExpiresAt: verification.expiresAt,
-            },
-        });
-        await sendVerificationEmail({ email: user.email, token: verification.token });
-        return res.status(201).json({
-            message: 'Account created. Check your email to verify your account before signing in.',
+        const verification = newVerificationCode(email);
+        const accountData = {
+            name,
+            address,
+            phoneNum: phone_num,
+            role,
+            responderUnit: role === 'respondent' ? responder_unit : null,
+            password: await bcrypt.hash(password, 12),
+            emailVerificationToken: verification.digest,
+            verificationExpiresAt: verification.expiresAt,
+        };
+        const user = existing
+            ? await prisma.user.update({ where: { id: existing.id }, data: accountData })
+            : await prisma.user.create({ data: { ...accountData, email } });
+
+        await sendVerificationEmail({ email: user.email, code: verification.code });
+        return res.status(existing ? 200 : 201).json({
+            message: existing
+                ? 'Your pending account was updated. Enter the new 6-digit code sent to your email.'
+                : 'Account created. Enter the 6-digit code sent to your email before signing in.',
             email: user.email,
             requiresVerification: true,
         });
     } catch (error) {
+        if (emailDeliveryResponse(error, res)) return;
         next(error);
     }
 });
 
-router.post('/verify-email', sensitiveLimiter, validate(tokenSchema), async (req, res, next) => {
+router.post('/verify-email', sensitiveLimiter, validate(verificationCodeSchema), async (req, res, next) => {
     try {
-        const digest = crypto.createHash('sha256').update(req.validatedBody.token).digest('hex');
+        const { email, code } = req.validatedBody;
+        const digest = verificationDigest(email, code);
         const user = await prisma.user.findFirst({
-            where: { emailVerificationToken: digest, verificationExpiresAt: { gt: new Date() } },
+            where: { email, emailVerificationToken: digest, verificationExpiresAt: { gt: new Date() } },
         });
-        if (!user) return res.status(400).json({ message: 'This verification link is invalid or has expired.' });
+        if (!user) return res.status(400).json({ message: 'The verification code is invalid or has expired.' });
 
         const verified = await prisma.user.update({
             where: { id: user.id },
@@ -177,15 +288,22 @@ router.post('/resend-verification', sensitiveLimiter, validate(resendSchema), as
     try {
         const user = await prisma.user.findUnique({ where: { email: req.validatedBody.email } });
         if (user && !user.emailVerifiedAt) {
-            const verification = newVerificationToken();
+            if (!isEmailDeliveryConfigured()) {
+                return res.status(503).json({
+                    message: 'Email verification is not configured. Add the Gmail SMTP account and App Password to the backend.',
+                    code: 'EMAIL_NOT_CONFIGURED',
+                });
+            }
+            const verification = newVerificationCode(user.email);
             await prisma.user.update({
                 where: { id: user.id },
                 data: { emailVerificationToken: verification.digest, verificationExpiresAt: verification.expiresAt },
             });
-            await sendVerificationEmail({ email: user.email, token: verification.token });
+            await sendVerificationEmail({ email: user.email, code: verification.code });
         }
         return res.json({ message: 'If an unverified account exists, a new verification email has been sent.' });
     } catch (error) {
+        if (emailDeliveryResponse(error, res)) return;
         next(error);
     }
 });
@@ -212,6 +330,7 @@ router.post('/login', sensitiveLimiter, validate(loginSchema), async (req, res, 
 });
 
 router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res, next) => {
+    res.setHeader('X-Rescue-Auth-Version', 'google-cert-v5-avast-safe');
     try {
         if (!process.env.GOOGLE_CLIENT_ID) {
             return res.status(503).json({ message: 'Google sign-in is not configured.' });
@@ -253,17 +372,21 @@ router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res
         return res.json({ user: publicUser(user), token });
     } catch (error) {
         if (hasErrorCode(error, googleConnectionCodes) || error?.name === 'AbortError') {
-            return res.status(503).json({ message: 'The server could not reach Google securely. Check the backend internet connection and try again.' });
+            const diagnosticCode = error?.code || error?.cause?.code || error?.name || 'UNKNOWN';
+            console.error('[Google auth certificate error]', {
+                code: diagnosticCode,
+                syscall: error?.syscall || error?.cause?.syscall,
+                address: error?.address || error?.cause?.address,
+                port: error?.port || error?.cause?.port,
+            });
+            return res.status(503).json({
+                message: `Google verification could not load its signing certificates. Restart the updated backend and try again. [AUTH-V5:${diagnosticCode}]`,
+            });
         }
         if (error?.code === 'P2002') {
             return res.status(409).json({ message: 'This Google account is already linked to another RESCUE APP account.' });
         }
-        if (
-            error?.message?.includes('Token used too late')
-            || error?.message?.includes('Wrong recipient')
-            || error?.message?.includes('Invalid token')
-            || error?.message?.includes('Wrong number of segments')
-        ) {
+        if (error?.code === 'GOOGLE_INVALID_CREDENTIAL') {
             return res.status(401).json({ message: 'Google sign-in expired or is invalid. Please try again.' });
         }
         next(error);
@@ -285,6 +408,21 @@ router.get('/session', async (req, res) => {
 });
 
 router.get('/me', protect, (req, res) => res.json(req.user));
+router.patch('/profile', protect, validate(profileSchema), async (req, res, next) => {
+    try {
+        const user = await prisma.user.update({
+            where: { id: req.user.id },
+            data: {
+                name: req.validatedBody.name,
+                address: req.validatedBody.address,
+                phoneNum: req.validatedBody.phone_num,
+            },
+        });
+        return res.json({ message: 'Profile updated successfully.', user: publicUser(user) });
+    } catch (error) {
+        next(error);
+    }
+});
 router.post('/logout', (req, res) => {
     res.clearCookie('token', cookieOptions);
     res.json({ message: 'Logged out successfully' });

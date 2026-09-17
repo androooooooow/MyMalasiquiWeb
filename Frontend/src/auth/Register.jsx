@@ -19,10 +19,18 @@ const accountTypes = [
   },
 ];
 
+const responderUnits = [
+  { value: 'HEALTH_AMBULANCE', label: 'Health / Ambulance', description: 'Medical and ambulance emergencies' },
+  { value: 'PNP_POLICE', label: 'PNP / Police', description: 'Police and public-safety emergencies' },
+  { value: 'BFP_FIRE', label: 'BFP / Fire Truck', description: 'Fire and rescue emergencies' },
+  { value: 'MDRRMO', label: 'MDRRMO', description: 'Search, rescue, disaster, and other emergencies' },
+];
+
 export default function Register() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     accountType: 'citizen',
+    responder_unit: '',
     name: '',
     address: '',
     phone_num: '',
@@ -48,6 +56,7 @@ export default function Register() {
       email: form.email.trim(),
       password: form.password,
       role: form.accountType,
+      ...(form.accountType === 'respondent' ? { responder_unit: form.responder_unit } : {}),
     };
 
     if (Object.values(details).some((value) => !value)) {
@@ -157,6 +166,26 @@ export default function Register() {
             />
           </label>
 
+          {form.accountType === 'respondent' && (
+            <label className="form-field form-field--wide" htmlFor="register-responder-unit">
+              <span>Response unit</span>
+              <select
+                className="auth-input"
+                id="register-responder-unit"
+                name="responder_unit"
+                value={form.responder_unit}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>Select your assigned unit</option>
+                {responderUnits.map((unit) => (
+                  <option key={unit.value} value={unit.value}>{unit.label} — {unit.description}</option>
+                ))}
+              </select>
+              <small className="role-note">You will only receive emergency requests assigned to this service.</small>
+            </label>
+          )}
+
           <label className="form-field form-field--wide" htmlFor="register-email">
             <span>Email address</span>
             <input
@@ -193,9 +222,11 @@ export default function Register() {
         </div>
 
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating account…' : 'Create account'}
+          {isSubmitting
+            ? 'Creating account…'
+            : `Create ${form.accountType === 'respondent' ? 'responder' : 'citizen'} account`}
         </button>
-        <p className="form-security-note">We’ll email you a secure link. Your dashboard stays locked until you verify it.</p>
+        <p className="form-security-note">We’ll email you a 6-digit code. Your dashboard stays locked until you verify it.</p>
       </form>
     </AuthLayout>
   );

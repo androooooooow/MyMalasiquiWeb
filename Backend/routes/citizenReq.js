@@ -36,9 +36,20 @@ const responderLocationSchema = z.object({
 
 const idSchema = z.object({ id: z.string().cuid('Invalid emergency request') });
 
+const servicesByResponderUnit = {
+    HEALTH_AMBULANCE: ['AMBULANCE'],
+    PNP_POLICE: ['POLICE'],
+    BFP_FIRE: ['FIRE'],
+    MDRRMO: ['SEARCH_RESCUE', 'DISASTER', 'OTHER'],
+};
+
+function servicesForResponder(user) {
+    return servicesByResponderUnit[user.responder_unit] || [];
+}
+
 const emergencyInclude = {
     citizen: { select: { id: true, name: true, address: true, phoneNum: true } },
-    assignedResponder: { select: { id: true, name: true, phoneNum: true } },
+    assignedResponder: { select: { id: true, name: true, phoneNum: true, responderUnit: true } },
 };
 
 function parseId(req, res) {
@@ -116,11 +127,15 @@ router.get('/mine', allowRoles('citizen'), async (req, res, next) => {
 
 router.get('/queue', allowRoles('respondent', 'admin'), async (req, res, next) => {
     try {
+        const responderServices = servicesForResponder(req.user);
+        if (req.user.role === 'respondent' && responderServices.length === 0) {
+            return res.status(403).json({ message: 'Your responder account does not have a response unit assigned.' });
+        }
         const where = req.user.role === 'admin'
             ? { status: { in: ['PENDING', 'ACCEPTED', 'EN_ROUTE'] } }
             : {
                 OR: [
-                    { status: 'PENDING', assignedResponderId: null },
+                    { status: 'PENDING', assignedResponderId: null, service: { in: responderServices } },
                     { assignedResponderId: req.user.id, status: { in: ['ACCEPTED', 'EN_ROUTE'] } },
                 ],
             };
@@ -140,10 +155,14 @@ router.patch('/:id/accept', allowRoles('respondent'), async (req, res, next) => 
     try {
         const id = parseId(req, res);
         if (!id) return;
+        const responderServices = servicesForResponder(req.user);
+        if (responderServices.length === 0) {
+            return res.status(403).json({ message: 'Your responder account does not have a response unit assigned.' });
+        }
 
         const accepted = await prisma.$transaction(async (transaction) => {
             const result = await transaction.emergencyRequest.updateMany({
-                where: { id, status: 'PENDING', assignedResponderId: null },
+                where: { id, status: 'PENDING', assignedResponderId: null, service: { in: responderServices } },
                 data: { status: 'ACCEPTED', assignedResponderId: req.user.id, acceptedAt: new Date() },
             });
             if (result.count !== 1) return null;
@@ -151,7 +170,7 @@ router.patch('/:id/accept', allowRoles('respondent'), async (req, res, next) => 
         });
 
         if (!accepted) {
-            return res.status(409).json({ message: 'This request was already accepted or is no longer available.' });
+            return res.status(409).json({ message: 'This request is not available to your unit or was already accepted.' });
         }
         return res.json({ message: 'Emergency request accepted.', emergency: accepted });
     } catch (error) {
