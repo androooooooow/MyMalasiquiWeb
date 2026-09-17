@@ -84,8 +84,8 @@ export default function DashboardShell({
 
         {showEmergencyButton && (
           <button type="button" className="rescue-sos" onClick={() => selectPage('emergency')}>
-            <span className="rescue-sos__icon"><AppIcon name="phone" size={18} /></span>
-            <span><strong>Emergency help</strong><small>View verified contacts</small></span>
+            <span className="rescue-sos__icon"><AppIcon name="alert" size={18} /></span>
+            <span><strong>Request rescue</strong><small>Send an in-app emergency</small></span>
           </button>
         )}
 

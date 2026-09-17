@@ -90,7 +90,7 @@ export default function Login({ onAuthenticated }) {
       description="Access your rescue dashboard and stay connected when every second counts."
       footer={
         <p>
-          New to Malasiqui Rescue? <Link to="/register">Create an account</Link>
+          New to RESCUE APP? <Link to="/register">Create an account</Link>
         </p>
       }
     >

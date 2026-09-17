@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -22,6 +23,52 @@ model User {
   authProvider           String    @default("local") @map("auth_provider")
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")
+  emergencyRequests      EmergencyRequest[] @relation("CitizenEmergencyRequests")
+  assignedEmergencyRequests EmergencyRequest[] @relation("ResponderEmergencyRequests")
 
   @@map("users")
+}
+
+enum EmergencyService {
+  AMBULANCE
+  FIRE
+  POLICE
+  SEARCH_RESCUE
+  DISASTER
+  OTHER
+}
+
+enum EmergencyStatus {
+  PENDING
+  ACCEPTED
+  EN_ROUTE
+  RESOLVED
+  CANCELLED
+}
+
+model EmergencyRequest {
+  id                  String           @id @default(cuid())
+  citizenId           Int              @map("citizen_id")
+  assignedResponderId Int?             @map("assigned_responder_id")
+  service             EmergencyService
+  status              EmergencyStatus  @default(PENDING)
+  description         String
+  peopleAffected      String           @map("people_affected")
+  landmark            String?
+  callbackPhone       String?          @map("callback_phone")
+  latitude            Float
+  longitude           Float
+  accuracyMeters      Int              @map("accuracy_meters")
+  acceptedAt          DateTime?        @map("accepted_at")
+  resolvedAt          DateTime?        @map("resolved_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at")
+
+  citizen             User             @relation("CitizenEmergencyRequests", fields: [citizenId], references: [id], onDelete: Restrict)
+  assignedResponder   User?            @relation("ResponderEmergencyRequests", fields: [assignedResponderId], references: [id], onDelete: SetNull)
+
+  @@index([citizenId, createdAt])
+  @@index([assignedResponderId, status])
+  @@index([status, createdAt])
+  @@map("emergency_requests")
 }

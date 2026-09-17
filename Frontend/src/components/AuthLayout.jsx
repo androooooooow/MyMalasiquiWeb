@@ -36,10 +36,10 @@ export default function AuthLayout({
   return (
     <main className="auth-page">
       <div className={`auth-card${isRegister ? ' auth-card--register' : ''}`}>
-        <aside className="auth-visual" aria-label="Malasiqui Rescue">
+        <aside className="auth-visual" aria-label="RESCUE APP">
           <div className="auth-brand">
             <RescueMark className="auth-brand__mark" />
-            <span>Malasiqui Rescue</span>
+            <span>RESCUE APP</span>
           </div>
 
           <div className="auth-visual__art" aria-hidden="true">
@@ -50,8 +50,8 @@ export default function AuthLayout({
           </div>
 
           <div className="auth-visual__copy">
-            <p className="auth-visual__eyebrow">Ready when it matters</p>
-            <p>One safe place to request help and coordinate a response.</p>
+            <p className="auth-visual__eyebrow">Malasiqui response network</p>
+            <p>Preparedness, communication, and response tools in one secure place.</p>
           </div>
         </aside>
 

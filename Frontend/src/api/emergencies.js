@@ -1,0 +1,37 @@
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  withCredentials: true,
+  timeout: 10000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export async function createEmergencyRequest(request) {
+  const { data } = await api.post('/emergencies', request);
+  return data;
+}
+
+export async function fetchMyEmergencyRequests() {
+  const { data } = await api.get('/emergencies/mine');
+  return data.emergencies;
+}
+
+export async function fetchResponderQueue() {
+  const { data } = await api.get('/emergencies/queue');
+  return data.emergencies;
+}
+
+export async function acceptEmergencyRequest(id) {
+  const { data } = await api.patch(`/emergencies/${id}/accept`);
+  return data.emergency;
+}
+
+export async function updateEmergencyStatus(id, status) {
+  const { data } = await api.patch(`/emergencies/${id}/status`, { status });
+  return data.emergency;
+}
+
+export function getEmergencyError(error, fallbackMessage) {
+  return error?.response?.data?.message || fallbackMessage;
+}

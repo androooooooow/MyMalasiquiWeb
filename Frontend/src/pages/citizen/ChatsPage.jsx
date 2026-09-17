@@ -1,81 +1,65 @@
 import { useState } from 'react';
+import AppIcon from '../../components/AppIcon';
 
-const SAMPLE_THREADS = [
-  {
-    id: 'thread-1',
-    name: 'MDRRMO Response Team',
-    preview: 'Your request has been received. A team is on the way.',
-    time: '9:42 AM',
-  },
-  {
-    id: 'thread-2',
-    name: 'Barangay Update',
-    preview: 'Reminder: water distribution today at the covered court.',
-    time: 'Yesterday',
-  },
+const THREADS = [
+  { id: 'response', name: 'MDRRMO Response Desk', preview: 'Your safety is our priority.', time: '9:42 AM' },
+  { id: 'barangay', name: 'Barangay Updates', preview: 'Community advisory preview', time: 'Yesterday' },
 ];
 
-export default function ChatsPage({ user }) {
-  const [activeThread, setActiveThread] = useState(SAMPLE_THREADS[0].id);
-  const thread = SAMPLE_THREADS.find((t) => t.id === activeThread);
+export default function ChatsPage() {
+  const [activeThread, setActiveThread] = useState(THREADS[0].id);
+  const thread = THREADS.find((item) => item.id === activeThread);
 
   return (
-    <section aria-labelledby="chats-title">
-      <p className="dashboard-card__eyebrow">Messages</p>
-      <h1 id="chats-title" className="citizen-page-title">Chats</h1>
-      <p className="citizen-page-lede">
-        This is a preview layout. Messages here are placeholders until chat is connected
-        to live conversations.
-      </p>
-
-      <div className="citizen-chat-layout">
-        <ul className="citizen-thread-list" aria-label="Conversations">
-          {SAMPLE_THREADS.map((t) => (
-            <li key={t.id}>
-              <button
-                type="button"
-                className={`citizen-thread${t.id === activeThread ? ' citizen-thread--active' : ''}`}
-                onClick={() => setActiveThread(t.id)}
-                aria-current={t.id === activeThread ? 'true' : undefined}
-              >
-                <span className="citizen-thread__name">{t.name}</span>
-                <span className="citizen-thread__preview">{t.preview}</span>
-                <span className="citizen-thread__time">{t.time}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="citizen-chat-panel">
-          {thread ? (
-            <>
-              <div className="citizen-chat-panel__header">{thread.name}</div>
-              <div className="citizen-chat-panel__body">
-                <div className="citizen-chat-bubble citizen-chat-bubble--them">
-                  {thread.preview}
-                </div>
-                <div className="citizen-chat-bubble citizen-chat-bubble--me">
-                  Thank you, please keep me posted.
-                </div>
-              </div>
-              <form
-                className="citizen-chat-panel__composer"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <input
-                  type="text"
-                  placeholder="Type a message…"
-                  aria-label={`Message ${thread.name}`}
-                  disabled
-                />
-                <button type="submit" disabled>Send</button>
-              </form>
-            </>
-          ) : (
-            <p className="citizen-chat-panel__empty">Select a conversation to view it.</p>
-          )}
+    <>
+      <div className="rescue-page-head">
+        <div>
+          <p className="rescue-eyebrow">Communications</p>
+          <h1 className="rescue-page-title">Messages</h1>
+          <p className="rescue-page-lede">A clear conversation space for updates from the response team and your barangay.</p>
         </div>
+        <span className="rescue-status-pill rescue-status-pill--amber">Frontend preview</span>
       </div>
-    </section>
+
+      <section className="rescue-card rescue-chat">
+        <div className="rescue-chat__threads">
+          <div className="rescue-chat__search">
+            <AppIcon name="search" size={15} />
+            <input type="search" placeholder="Search conversations" aria-label="Search conversations" />
+          </div>
+          <ul className="rescue-chat__list">
+            {THREADS.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={`rescue-chat__thread${item.id === activeThread ? ' rescue-chat__thread--active' : ''}`}
+                  onClick={() => setActiveThread(item.id)}
+                >
+                  <strong>{item.name}</strong>
+                  <span>{item.preview}</span>
+                  <span>{item.time}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rescue-chat__panel">
+          <header className="rescue-chat__header">
+            <span className="rescue-chat__header-avatar">MR</span>
+            <span><strong>{thread?.name}</strong><small>Official channel · Preview</small></span>
+          </header>
+          <div className="rescue-chat__messages">
+            <span className="rescue-chat__bubble rescue-chat__bubble--them">Welcome to the redesigned RESCUE APP message center.</span>
+            <span className="rescue-chat__bubble rescue-chat__bubble--me">Thank you. I can see the new interface clearly.</span>
+            <span className="rescue-empty-note">Messaging is visual-only until realtime chat is connected to the backend.</span>
+          </div>
+          <form className="rescue-chat__composer" onSubmit={(event) => event.preventDefault()}>
+            <input type="text" placeholder="Messaging will be enabled later" disabled />
+            <button className="rescue-button rescue-button--primary rescue-button--small" type="submit" disabled>Send</button>
+          </form>
+        </div>
+      </section>
+    </>
   );
 }

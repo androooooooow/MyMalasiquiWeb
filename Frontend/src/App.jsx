@@ -8,15 +8,31 @@ import Register from './auth/Register';
 import { CheckEmail, VerifyEmail } from './auth/EmailVerification';
 import { fetchCurrentUser } from './api/auth';
 
+const previewRole = import.meta.env.DEV
+  ? new URLSearchParams(window.location.search).get('previewRole')
+  : null;
+const previewUser = ['citizen', 'respondent', 'admin'].includes(previewRole)
+  ? {
+      id: 0,
+      name: 'Demo User',
+      email: 'demo@rescue.local',
+      phone_num: '0912 345 6789',
+      address: 'Poblacion, Malasiqui, Pangasinan',
+      role: previewRole,
+      created_at: new Date().toISOString(),
+    }
+  : null;
+
 function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(previewUser);
+  const [loading, setLoading] = useState(!previewUser);
 
   useEffect(() => {
+    if (previewUser) return;
     const fetchUser = async () => {
       try {
         const currentUser = await fetchCurrentUser();
-        setUser(currentUser);
+        setUser(currentUser || null);
       } catch {
         setUser(null);
       } finally {

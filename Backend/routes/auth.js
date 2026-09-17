@@ -81,6 +81,53 @@ function issueSession(res, user) {
     return token;
 }
 
+function hasErrorCode(error, codes) {
+    let current = error;
+    while (current) {
+        if (codes.includes(current.code)) return true;
+        current = current.cause;
+    }
+    return false;
+}
+
+const googleConnectionCodes = [
+    'EACCES', 'ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT',
+    'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'SELF_SIGNED_CERT_IN_CHAIN',
+];
+
+async function verifyGoogleCredential(credential) {
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        return ticket.getPayload();
+    } catch (error) {
+        if (!hasErrorCode(error, googleConnectionCodes)) throw error;
+
+        // Google's token-info endpoint independently validates the signature.
+        // This is a narrow fallback for Windows/proxy certificate-chain issues;
+        // the claims are still checked locally before an application session is issued.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        try {
+            const url = new URL('https://oauth2.googleapis.com/tokeninfo');
+            url.searchParams.set('id_token', credential);
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) throw error;
+            const payload = await response.json();
+            const now = Math.floor(Date.now() / 1000);
+            const issuerValid = ['accounts.google.com', 'https://accounts.google.com'].includes(payload.iss);
+            const audienceValid = payload.aud === process.env.GOOGLE_CLIENT_ID;
+            const expiryValid = Number(payload.exp) > now;
+            if (!issuerValid || !audienceValid || !expiryValid) throw new Error('Invalid Google token claims');
+            return payload;
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+}
+
 router.post('/register', sensitiveLimiter, validate(registerSchema), async (req, res, next) => {
     try {
         const { name, address, phone_num, email, role, password } = req.validatedBody;
@@ -169,12 +216,9 @@ router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res
         if (!process.env.GOOGLE_CLIENT_ID) {
             return res.status(503).json({ message: 'Google sign-in is not configured.' });
         }
-        const ticket = await googleClient.verifyIdToken({
-            idToken: req.validatedBody.credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        if (!payload?.sub || !payload.email || !payload.email_verified) {
+        const payload = await verifyGoogleCredential(req.validatedBody.credential);
+        const emailVerified = payload?.email_verified === true || payload?.email_verified === 'true';
+        if (!payload?.sub || !payload.email || !emailVerified) {
             return res.status(401).json({ message: 'Google could not verify this email address.' });
         }
 
@@ -208,6 +252,12 @@ router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res
         const token = issueSession(res, user);
         return res.json({ user: publicUser(user), token });
     } catch (error) {
+        if (hasErrorCode(error, googleConnectionCodes) || error?.name === 'AbortError') {
+            return res.status(503).json({ message: 'The server could not reach Google securely. Check the backend internet connection and try again.' });
+        }
+        if (error?.code === 'P2002') {
+            return res.status(409).json({ message: 'This Google account is already linked to another RESCUE APP account.' });
+        }
         if (
             error?.message?.includes('Token used too late')
             || error?.message?.includes('Wrong recipient')
@@ -217,6 +267,20 @@ router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res
             return res.status(401).json({ message: 'Google sign-in expired or is invalid. Please try again.' });
         }
         next(error);
+    }
+});
+
+router.get('/session', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies.token;
+    if (!token) return res.json({ user: null });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user?.emailVerifiedAt) return res.json({ user: null });
+        return res.json({ user: publicUser(user) });
+    } catch {
+        return res.json({ user: null });
     }
 });
 

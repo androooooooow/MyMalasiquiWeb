@@ -12,8 +12,8 @@ const api = axios.create({
 });
 
 export async function fetchCurrentUser() {
-  const { data } = await api.get('/auth/me');
-  return data;
+  const { data } = await api.get('/auth/session');
+  return data.user;
 }
 
 export async function login(credentials) {
@@ -48,4 +48,3 @@ export async function logout() {
 export function getRequestError(error, fallbackMessage) {
   return error?.response?.data?.message || fallbackMessage;
 }
-
