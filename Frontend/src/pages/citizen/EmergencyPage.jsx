@@ -178,7 +178,7 @@ export default function EmergencyPage() {
                 return <li className={complete ? 'emergency-timeline__item emergency-timeline__item--complete' : 'emergency-timeline__item'} key={key}><span><AppIcon name={complete ? 'check' : 'clock'} size={15} /></span><div><strong>{label}</strong><small>{detail}</small></div></li>;
               })}
             </ol>
-            <div className="emergency-tracker__details"><p><strong>Request ID</strong><span>{emergency?.id}</span></p><p><strong>Responder</strong><span>{emergency?.assignedResponder?.name || 'Not assigned yet'}</span></p><p><strong>Contact</strong><span>{emergency?.assignedResponder?.phoneNum || 'Available after assignment'}</span></p></div>
+            <div className="emergency-tracker__details"><p><strong>Requested by</strong><span>{emergency?.citizen?.name || 'Citizen'}</span></p><p><strong>Responder</strong><span>{emergency?.assignedResponder?.name || 'Not assigned yet'}</span></p><p><strong>Contact</strong><span>{emergency?.assignedResponder?.phoneNum || 'Available after assignment'}</span></p></div>
           </article>
           <article className="rescue-card emergency-tracker__map-card">
             <header className="rescue-card__header"><h2>Responder live location</h2><span className="rescue-status-pill">Auto-updates</span></header>

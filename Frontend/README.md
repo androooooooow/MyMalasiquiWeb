@@ -1,16 +1,16 @@
-# React + Vite
+# RESCUE APP Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This folder contains the React and Vite frontend for RESCUE APP.
 
-Currently, two official plugins are available:
+Use the main project documentation at [`../README.md`](../README.md) for requirements, environment configuration, installation, startup commands, API information, and security notes.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Implementation and fix history is documented in [`../PROJECT_CHANGE_SUMMARY.txt`](../PROJECT_CHANGE_SUMMARY.txt).
 
-## React Compiler
+## Frontend commands
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```powershell
+npm install
+npm run dev
+npm run lint
+npm run build
+```

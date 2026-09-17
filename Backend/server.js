@@ -6,7 +6,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
-import emergencyRoutes from './routes/citizenReq.js';
+import citizenRequestRoutes from './routes/citizenReq.js';
+import respondentActionRoutes from './routes/respondentAction.js';
 
 dotenv.config();
 
@@ -43,13 +44,15 @@ app.use('/api/auth', rateLimit({
     message: { message: 'Too many authentication requests. Please try again later.' },
 }));
 app.use("/api/auth", authRoutes); 
-app.use('/api/emergencies', rateLimit({
+const emergencyLimiter = rateLimit({
     windowMs: 60 * 1000,
     limit: 60,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     message: { message: 'Too many emergency requests. Please wait briefly and try again.' },
-}), emergencyRoutes);
+});
+app.use('/api/emergencies', emergencyLimiter, citizenRequestRoutes);
+app.use('/api/respondent-actions', emergencyLimiter, respondentActionRoutes);
 
 app.use((error, req, res, next) => {
     console.error(error);

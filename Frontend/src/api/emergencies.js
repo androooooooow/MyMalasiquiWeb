@@ -23,22 +23,22 @@ export async function fetchActiveEmergencyRequest() {
 }
 
 export async function fetchResponderQueue() {
-  const { data } = await api.get('/emergencies/queue');
+  const { data } = await api.get('/respondent-actions/queue');
   return data.emergencies;
 }
 
 export async function acceptEmergencyRequest(id) {
-  const { data } = await api.patch(`/emergencies/${id}/accept`);
+  const { data } = await api.patch(`/respondent-actions/${id}/accept`);
   return data.emergency;
 }
 
 export async function updateEmergencyStatus(id, status) {
-  const { data } = await api.patch(`/emergencies/${id}/status`, { status });
+  const { data } = await api.patch(`/respondent-actions/${id}/status`, { status });
   return data.emergency;
 }
 
 export async function updateResponderLocation(id, location) {
-  const { data } = await api.patch(`/emergencies/${id}/responder-location`, location);
+  const { data } = await api.patch(`/respondent-actions/${id}/responder-location`, location);
   return data.emergency;
 }
 

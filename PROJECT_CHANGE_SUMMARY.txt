@@ -1,0 +1,161 @@
+RESCUE APP - PROJECT CHANGE SUMMARY
+===================================
+
+Purpose of this file
+--------------------
+This document contains the implementation history, explanations, fixes, and architectural changes made to the RESCUE APP project. Project installation and usage instructions are kept in README.md.
+
+
+1. FRONTEND REDESIGN
+--------------------
+- Rebuilt the original interface into a responsive RESCUE APP design.
+- Added separate experiences for citizens, responders, and administrators.
+- Improved navigation, mobile layouts, dashboard cards, forms, alerts, and status displays.
+- Removed the direct 911-call behavior because emergencies are coordinated between users of this application.
+- The citizen emergency button now opens a dedicated emergency-request workflow.
+
+
+2. CITIZEN EMERGENCY FORM
+-------------------------
+- Added rescue-service selection for Ambulance, Fire, Police, Search and Rescue, Disaster Response, and Other.
+- Added incident description, number of people affected, callback number, and landmark fields.
+- Added browser location permission and GPS coordinate capture.
+- Increased the supported location-accuracy range so weak GPS or Wi-Fi positioning does not incorrectly reject valid emergency requests.
+- Changed the citizen tracker display from the internal Request ID to the name of the citizen who requested rescue.
+
+
+3. PRISMA AND POSTGRESQL
+------------------------
+- Configured Prisma as the ORM for database access.
+- Added typed User and EmergencyRequest models.
+- Added database migrations, indexes, unique fields, and user/request relationships.
+- Added a database-level active-citizen lock to prevent simultaneous emergency requests from the same citizen.
+- Added responder assignment, responder location, accuracy, and workflow timestamps.
+- Added responder-unit enums and emergency-service enums.
+- Added support for DATABASE_URL and existing DB_* environment variables.
+
+
+4. INPUT VALIDATION AND SECURITY
+--------------------------------
+- Added strict Zod validation for authentication, profiles, emergency requests, IDs, GPS coordinates, and status changes.
+- Added bcrypt password hashing using 12 rounds.
+- Added JWT sessions using HTTP-only cookies for the web application.
+- Retained Bearer-token support for mobile clients.
+- Added authentication and role middleware.
+- Added Helmet security headers, restricted CORS origins, JSON request limits, and rate limiting.
+- Protected backend routes verify the database user and require a verified email.
+
+
+5. GOOGLE SIGN-IN
+-----------------
+- Integrated Google Identity Services in the frontend.
+- Added backend Google ID-token signature, issuer, audience, expiry, and verified-email checks.
+- Added safe account creation and linking using a Google-verified email address.
+- Added Cross-Origin-Opener-Policy configuration for the Google popup.
+- Added Windows certificate-store support and explicit Google signing-certificate loading.
+- Added certificate caching and clearer 401, 409, and 503 error responses.
+- Added a backend startup wrapper that removes an inaccessible Avast SSL key-log pipe and enables trusted Windows certificate authorities.
+
+
+6. EMAIL VERIFICATION
+---------------------
+- Replaced verification links with a six-digit verification code.
+- Codes expire after 10 minutes.
+- The raw code is never stored. An HMAC digest of the email and code is saved instead.
+- Local login is blocked until emailVerifiedAt is set.
+- Successful verification clears the saved code and expiry before creating the user's first session.
+- Added a verification page with email, one-time-code input, resend action, loading state, and errors.
+- Unverified users who attempt to log in are redirected to the verification page.
+- Existing pending accounts can be refreshed and sent a new code instead of receiving a permanent 409 conflict.
+
+
+7. GMAIL SMTP FIXES
+-------------------
+- Added Nodemailer SMTP delivery for verification codes.
+- Changed the placeholder smtp.example.com host to smtp.gmail.com.
+- Configured port 587 with STARTTLS.
+- Required a Gmail or Google Workspace App Password instead of a normal password.
+- Removed the old development behavior that pretended an email was sent when SMTP was missing.
+- Added clear errors for missing configuration and failed delivery.
+- Forced SMTP DNS resolution to a working IPv4 address on the Windows/Avast environment while preserving smtp.gmail.com as the TLS certificate hostname.
+- Added bounded connection, greeting, and socket timeouts.
+
+
+8. EMERGENCY REQUEST BACKEND
+----------------------------
+- Added secure citizen endpoints for creating requests, loading the active request, and viewing request history.
+- Enforced one active request in PENDING, ACCEPTED, or EN_ROUTE status.
+- Added request status transitions and timestamps.
+- Added atomic responder acceptance using a database transaction and conditional update.
+- The active-citizen lock is cleared when a request becomes RESOLVED.
+
+
+9. RESPONDER UNITS AND REQUEST ROUTING
+--------------------------------------
+- Added required responder-unit selection during responder registration.
+- Added Health/Ambulance, PNP/Police, BFP/Fire Truck, and MDRRMO units.
+- Ambulance requests are visible to Health/Ambulance responders.
+- Police requests are visible to PNP/Police responders.
+- Fire requests are visible to BFP/Fire responders.
+- Search and Rescue, Disaster, and Other requests are visible to MDRRMO responders.
+- Unit filtering is enforced by the backend, not only hidden in the frontend.
+
+
+10. RESPONDER GPS AND DISPATCH MAP
+----------------------------------
+- Added citizen coordinates to the responder queue and dispatch views.
+- Added Google Maps location and navigation links.
+- A responder must share an initial location before marking a request EN_ROUTE.
+- The respondent page watches GPS position and uploads changes during an active response.
+- The citizen page polls for request and responder-position updates.
+- The citizen can view whether the request is pending, accepted, or en route and see the assigned responder.
+
+
+11. PROFILE PAGES
+-----------------
+- Added editable name, address, and phone number fields for citizens and responders.
+- Added a shared validated profile editor.
+- Profile updates are saved through a protected backend endpoint.
+- Responder units are displayed as protected account information rather than freely editable profile data.
+
+
+12. RESPONDER FRONTEND ORGANIZATION
+-----------------------------------
+- Split the original combined respondent dashboard into a respondent folder.
+- Added separate overview, incidents, dispatch, teams, communications, and profile pages.
+- Added reusable incident-list, incident-map, page-header, and responder-operation components/hooks.
+- Kept common navigation and dashboard layout components shared where appropriate.
+
+
+13. BACKEND ROUTE SEPARATION
+----------------------------
+- Removed responder operations from Backend/routes/citizenReq.js.
+- citizenReq.js now contains only citizen emergency creation, active-request lookup, and history.
+- Created Backend/routes/respondentAction.js for responder queue, acceptance, status changes, and GPS updates.
+- Citizen routes use /api/emergencies.
+- Responder routes use /api/respondent-actions.
+- Updated the frontend API client to use the new responder route namespace.
+
+
+14. DOCUMENTATION CLEANUP
+-------------------------
+- Reorganized README.md as the project overview, requirements, configuration, installation, usage, API, database, and security guide.
+- Moved implementation summaries and explanations into this plain-text file.
+- Replaced the default Vite frontend README with a short pointer to the main project documentation.
+
+
+15. VALIDATION PERFORMED
+------------------------
+- Frontend production builds were run after interface and route changes.
+- Frontend lint checks passed.
+- Backend route and service syntax checks passed.
+- Unverified password login was confirmed to return HTTP 403.
+- Successful verification was confirmed to set emailVerifiedAt, clear the code and expiry, and issue a session.
+- Temporary verification test accounts were removed after testing.
+- The new responder queue endpoint returned HTTP 200 for an authenticated verified responder.
+- The removed responder queue path under /api/emergencies returned HTTP 404 for the same responder.
+
+
+Current architectural boundary
+------------------------------
+The application persists authentication, verification, profiles, emergency requests, unit routing, assignment, workflow status, and responder GPS information. Live updates currently use periodic polling. Future work can add WebSockets or Server-Sent Events, push notifications, incident chat, route ETA calculations, responder availability, administrator assignment tools, and reporting.
