@@ -10,7 +10,7 @@ This document contains the implementation history, explanations, fixes, and arch
 --------------------
 - Rebuilt the original interface into a responsive RESCUE APP design.
 - Added separate experiences for citizens, responders, and administrators.
-- Improved navigation, mobile layouts, dashboard cards, forms, alerts, and status displays.
+- Improved navigation, responsive browser layouts, dashboard cards, forms, alerts, and status displays.
 - Removed the direct 911-call behavior because emergencies are coordinated between users of this application.
 - The citizen emergency button now opens a dedicated emergency-request workflow.
 
@@ -40,7 +40,6 @@ This document contains the implementation history, explanations, fixes, and arch
 - Added strict Zod validation for authentication, profiles, emergency requests, IDs, GPS coordinates, and status changes.
 - Added bcrypt password hashing using 12 rounds.
 - Added JWT sessions using HTTP-only cookies for the web application.
-- Retained Bearer-token support for mobile clients.
 - Added authentication and role middleware.
 - Added Helmet security headers, restricted CORS origins, JSON request limits, and rate limiting.
 - Protected backend routes verify the database user and require a verified email.
@@ -144,7 +143,21 @@ This document contains the implementation history, explanations, fixes, and arch
 - Replaced the default Vite frontend README with a short pointer to the main project documentation.
 
 
-15. VALIDATION PERFORMED
+15. REAL-TIME UNIT CHAT
+-----------------------
+- Replaced the placeholder citizen and responder chat pages with working conversations.
+- Citizens can choose a separate conversation with Health/Ambulance, PNP/Police, BFP/Fire, or MDRRMO.
+- Responders see and reply only to citizen conversations assigned to their own response unit.
+- Added Prisma ChatConversation and ChatMessage models, a database migration, sender relationships, and indexes.
+- Messages are saved in PostgreSQL with sender identity and creation time.
+- Added protected /api/chats routes to list or create conversations and read or send messages.
+- Added strict message validation and server-side checks for citizen ownership and responder-unit access.
+- Added Server-Sent Events so open chat pages receive new-conversation and new-message updates without manual refresh.
+- Added shared chat UI with conversation selection, responder inbox search, message history, send controls, and connection status.
+- The live update channel currently runs within one backend server process; multi-server deployment needs a shared event broker.
+
+
+16. VALIDATION PERFORMED
 ------------------------
 - Frontend production builds were run after interface and route changes.
 - Frontend lint checks passed.
@@ -154,8 +167,28 @@ This document contains the implementation history, explanations, fixes, and arch
 - Temporary verification test accounts were removed after testing.
 - The new responder queue endpoint returned HTTP 200 for an authenticated verified responder.
 - The removed responder queue path under /api/emergencies returned HTTP 404 for the same responder.
+- The chat migration was applied to the local PostgreSQL database, and the Prisma client was regenerated.
+- Frontend lint and production build passed after the chat implementation.
+- The new chat conversation and live-stream endpoints returned HTTP 401 without authentication.
+- End-to-end message exchange between two signed-in accounts has not yet been verified.
+
+
+17. ADMIN DASHBOARD AND BACKEND
+-------------------------------
+- Replaced the admin frontend placeholders with a command center based on live database totals.
+- Added recent incident and recent admin-action lists to the admin home page.
+- Added searchable, filtered, paginated user management for citizen, responder, and administrator accounts.
+- Admins can block or unblock citizens and responders; they cannot block themselves or other administrators.
+- Blocking requires a reason and immediately denies password login, Google sign-in, session access, and protected backend routes.
+- Added incident analytics grouped by day, week, month, and year, including zero-count periods. These counts use UTC request-creation dates.
+- Added a database-backed audit log recording the admin actor, target user, action, reason, and timestamp.
+- Added an admin-only API for overview, users, access changes, analytics, and audit history.
+- Added a local, one-time admin bootstrap command. Public registration still cannot create an administrator.
+- The admin migration was applied to PostgreSQL. Frontend lint and production build passed.
+- An integration test verified role restrictions, analytics, block/unblock, denial of a blocked session, and audit records. Its temporary accounts and records were removed.
+- Prisma client generation reported a Windows file lock while the existing backend process was running; the generated client could query the new admin model. Regenerate after stopping the running backend process.
 
 
 Current architectural boundary
 ------------------------------
-The application persists authentication, verification, profiles, emergency requests, unit routing, assignment, workflow status, and responder GPS information. Live updates currently use periodic polling. Future work can add WebSockets or Server-Sent Events, push notifications, incident chat, route ETA calculations, responder availability, administrator assignment tools, and reporting.
+The application persists authentication, verification, profiles, emergency requests, unit routing, assignment, workflow status, responder GPS information, unit-specific chat messages, account blocks, and admin audit entries. Emergency and team views use periodic polling; chat uses Server-Sent Events for live updates on one backend instance. Admin analytics counts incidents by request creation date. Future work can add a shared event broker for multi-server chat, push notifications, route ETA calculations, responder availability, and deeper reporting.

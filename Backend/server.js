@@ -8,6 +8,8 @@ import { rateLimit } from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
 import citizenRequestRoutes from './routes/citizenReq.js';
 import respondentActionRoutes from './routes/respondentAction.js';
+import chatRoutes from './routes/chats.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -72,6 +74,8 @@ const emergencyLimiter = rateLimit({
 });
 app.use('/api/emergencies', emergencyLimiter, citizenRequestRoutes);
 app.use('/api/respondent-actions', emergencyLimiter, respondentActionRoutes);
+app.use('/api/chats', chatRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((error, req, res, next) => {
     console.error(error);

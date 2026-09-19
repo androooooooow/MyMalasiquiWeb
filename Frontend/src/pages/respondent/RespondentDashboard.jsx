@@ -47,7 +47,7 @@ export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
       case 'teams':
         return <TeamsPage members={teamMembers} unitLabel={unitLabel} />;
       case 'messages':
-        return <CommunicationsPage />;
+        return <CommunicationsPage user={user} />;
       case 'profile':
         return <ProfilePage user={user} onUserUpdated={onUserUpdated} unitLabel={unitLabel} />;
       case 'overview':

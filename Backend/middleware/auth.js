@@ -23,11 +23,14 @@ export const protect = async (req, res, next) => {
 
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
-            select: { id: true, name: true, address: true, phoneNum: true, email: true, role: true, responderUnit: true, emailVerifiedAt: true },
+            select: { id: true, name: true, address: true, phoneNum: true, email: true, role: true, responderUnit: true, emailVerifiedAt: true, blockedAt: true },
         });
 
         if (!user || !user.emailVerifiedAt) {
             return res.status(401).json({message: "Not authorized"});
+        }
+        if (user.blockedAt) {
+            return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
         }
 
         req.user = {

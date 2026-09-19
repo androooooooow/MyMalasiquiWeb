@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { key: 'home', label: 'Overview', icon: 'home' },
   { key: 'emergency', label: 'Emergency', icon: 'alert' },
   { key: 'knowledge', label: 'Safety guides', icon: 'book' },
-  { key: 'chats', label: 'Messages', icon: 'chat', badge: '2' },
+  { key: 'chats', label: 'Messages', icon: 'chat' },
   { key: 'profile', label: 'My profile', icon: 'user' },
 ];
 
@@ -20,7 +20,7 @@ export default function CitizenDashboard({ user, onLogout, onUserUpdated }) {
     home: <HomePage user={user} onNavigate={setActivePage} />,
     emergency: <EmergencyPage />,
     knowledge: <KnowledgePage />,
-    chats: <ChatsPage />,
+    chats: <ChatsPage user={user} />,
     profile: <ProfilePage user={user} onUserUpdated={onUserUpdated} />,
   };
 

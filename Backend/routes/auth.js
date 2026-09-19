@@ -284,6 +284,7 @@ router.post('/verify-email', sensitiveLimiter, validate(verificationCodeSchema),
             where: { email, emailVerificationToken: digest, verificationExpiresAt: { gt: new Date() } },
         });
         if (!user) return res.status(400).json({ message: 'The verification code is invalid or has expired.' });
+        if (user.blockedAt) return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
 
         const verified = await prisma.user.update({
             where: { id: user.id },
@@ -334,6 +335,7 @@ router.post('/login', sensitiveLimiter, validate(loginSchema), async (req, res, 
                 email: user.email,
             });
         }
+        if (user.blockedAt) return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
         const token = issueSession(res, user);
         return res.json({ user: publicUser(user), token });
     } catch (error) {
@@ -355,6 +357,9 @@ router.post('/google', googleSignInLimiter, validate(googleSchema), async (req, 
 
         const email = payload.email.toLowerCase();
         const existing = await prisma.user.findFirst({ where: { OR: [{ googleSub: payload.sub }, { email }] } });
+        if (existing?.blockedAt) {
+            return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
+        }
         const user = existing
             ? await prisma.user.update({
                 where: { id: existing.id },
@@ -412,7 +417,7 @@ router.get('/session', async (req, res) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await prisma.user.findUnique({ where: { id: decoded.id } });
-        if (!user?.emailVerifiedAt) return res.json({ user: null });
+        if (!user?.emailVerifiedAt || user.blockedAt) return res.json({ user: null });
         return res.json({ user: publicUser(user) });
     } catch {
         return res.json({ user: null });

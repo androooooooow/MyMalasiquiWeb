@@ -22,10 +22,16 @@ model User {
   verificationExpiresAt  DateTime? @map("verification_expires_at")
   googleSub              String?   @unique @map("google_sub")
   authProvider           String    @default("local") @map("auth_provider")
+  blockedAt              DateTime? @map("blocked_at")
+  blockReason            String?   @map("block_reason")
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")
   emergencyRequests      EmergencyRequest[] @relation("CitizenEmergencyRequests")
   assignedEmergencyRequests EmergencyRequest[] @relation("ResponderEmergencyRequests")
+  chatConversations      ChatConversation[] @relation("CitizenChatConversations")
+  chatMessages           ChatMessage[] @relation("SentChatMessages")
+  adminActions           AdminAuditLog[] @relation("AdminAuditActor")
+  receivedAdminActions   AdminAuditLog[] @relation("AdminAuditTarget")
 
   @@map("users")
   @@index([role, responderUnit])
@@ -85,4 +91,54 @@ model EmergencyRequest {
   @@index([assignedResponderId, status])
   @@index([status, createdAt])
   @@map("emergency_requests")
+}
+
+model ChatConversation {
+  id            String        @id @default(cuid())
+  citizenId     Int           @map("citizen_id")
+  responderUnit ResponderUnit @map("responder_unit")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  citizen       User          @relation("CitizenChatConversations", fields: [citizenId], references: [id], onDelete: Restrict)
+  messages      ChatMessage[]
+
+  @@unique([citizenId, responderUnit])
+  @@index([responderUnit, updatedAt])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(cuid())
+  conversationId String           @map("conversation_id")
+  senderId       Int              @map("sender_id")
+  body           String
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User             @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt, id])
+  @@map("chat_messages")
+}
+
+enum AdminAuditAction {
+  USER_BLOCKED
+  USER_UNBLOCKED
+}
+
+model AdminAuditLog {
+  id           String           @id @default(cuid())
+  actorId      Int              @map("actor_id")
+  targetUserId Int              @map("target_user_id")
+  action       AdminAuditAction
+  reason       String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  actor        User             @relation("AdminAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  targetUser   User             @relation("AdminAuditTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([targetUserId, createdAt])
+  @@map("admin_audit_logs")
 }

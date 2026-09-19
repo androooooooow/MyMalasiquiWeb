@@ -1,14 +1,11 @@
+import ChatWorkspace from '../../components/ChatWorkspace';
 import PageHeader from './components/PageHeader';
 
-export default function CommunicationsPage() {
+export default function CommunicationsPage({ user }) {
   return (
     <>
-      <PageHeader title="Communications" description="Coordinate with citizens, dispatchers, and field teams." />
-      <section className="rescue-card">
-        <div className="rescue-card__body">
-          <p className="rescue-empty-note">Incident-linked realtime messages will be added in the next backend phase.</p>
-        </div>
-      </section>
+      <PageHeader title="Communications" description="Live messages from citizens assigned to your response unit." />
+      <ChatWorkspace user={user} />
     </>
   );
 }

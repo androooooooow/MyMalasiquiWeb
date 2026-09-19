@@ -6,7 +6,7 @@ RESCUE APP is a full-stack emergency coordination system for Malasiqui. Citizens
 
 - **Citizen** — creates and tracks an emergency request.
 - **Responder** — receives requests routed to a specific response unit.
-- **Administrator** — views the administration and operational interface.
+- **Administrator** — monitors incidents and analytics, manages account access, and reviews audit records.
 
 Responder units supported by the system:
 
@@ -41,6 +41,14 @@ Responder units supported by the system:
 - Citizen tracking of request status and assigned responder
 - Responder GPS updates while travelling
 - Google Maps citizen-location and navigation links
+
+### Administration
+
+- Command center with real user and incident totals, recent incidents, and recent admin actions
+- Searchable, filtered, paginated user management
+- Immediate account blocking and unblocking, including existing sessions
+- Incident counts grouped by day, week, month, or year (UTC)
+- Audit log recording who changed account access, the target user, time, and block reason
 
 ## Technology
 
@@ -78,7 +86,9 @@ My-MalasiquiApp/
 │   ├── routes/
 │   │   ├── auth.js             Registration, verification, login, and profiles
 │   │   ├── citizenReq.js       Citizen-only emergency endpoints
-│   │   └── respondentAction.js Responder-only emergency operations
+│   │   ├── respondentAction.js Responder-only emergency operations
+│   │   ├── chats.js            Unit-specific live conversations
+│   │   └── admin.js            Admin dashboard, users, analytics, audit
 │   ├── scripts/                Backend and Prisma startup wrappers
 │   ├── services/               Email delivery
 │   └── server.js               Express server
@@ -151,6 +161,14 @@ npm run db:generate
 npm run db:migrate
 ```
 
+To create the first administrator, run this once in the backend folder from an interactive terminal:
+
+```powershell
+npm run admin:bootstrap
+```
+
+Enter the administrator's name, email, and password when prompted. The password is masked. The command refuses to create another administrator once one exists; public registration cannot assign the admin role.
+
 ### 2. Frontend dependencies
 
 ```powershell
@@ -209,6 +227,16 @@ Open `http://localhost:5173`.
 | PATCH | `/api/respondent-actions/:id/status` | Mark a request en route or resolved |
 | PATCH | `/api/respondent-actions/:id/responder-location` | Update responder GPS coordinates |
 
+### Admin (admin account only)
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/admin/overview` | Real account totals, incident totals, recent activity |
+| GET | `/api/admin/users` | Search and filter paginated accounts |
+| PATCH | `/api/admin/users/:id/block` | Block or unblock a citizen or responder |
+| GET | `/api/admin/analytics?period=day` | Incident totals by day, week, month, or year |
+| GET | `/api/admin/audit-log` | Read paginated admin access changes |
+
 ## Database rules
 
 - Prisma is the application data-access layer.
@@ -217,6 +245,8 @@ Open `http://localhost:5173`.
 - Each citizen can have only one active request.
 - Requests are filtered according to the responder's assigned unit.
 - A database transaction prevents duplicate request acceptance.
+- Blocked accounts cannot log in or use existing authenticated sessions.
+- Admin account-access changes and their reasons are stored in an audit log.
 
 ## Verification checks
 
@@ -238,7 +268,11 @@ node --check server.js
 node --check routes\auth.js
 node --check routes\citizenReq.js
 node --check routes\respondentAction.js
+node --check routes\admin.js
+npm run test:admin
 ```
+
+The admin integration test temporarily creates two test accounts, checks analytics and block/unblock behavior, then deletes its own test records.
 
 ## Security reminders
 
