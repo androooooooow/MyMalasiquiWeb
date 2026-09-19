@@ -14,6 +14,7 @@ export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
   const [activePage, setActivePage] = useState('overview');
   const {
     incidents,
+    teamMembers,
     loading,
     error,
     busyId,
@@ -30,6 +31,7 @@ export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
   ));
   const incidentProps = {
     incidents,
+    currentUserId: user.id,
     loading,
     busyId,
     onAccept: acceptIncident,
@@ -43,7 +45,7 @@ export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
       case 'dispatch':
         return <DispatchPage incidents={incidents} />;
       case 'teams':
-        return <TeamsPage />;
+        return <TeamsPage members={teamMembers} unitLabel={unitLabel} />;
       case 'messages':
         return <CommunicationsPage />;
       case 'profile':

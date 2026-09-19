@@ -2,7 +2,7 @@ import AppIcon from '../../components/AppIcon';
 import IncidentList from './components/IncidentList';
 import PageHeader from './components/PageHeader';
 
-export default function IncidentsPage({ incidents, loading, busyId, onAccept, onStatus, onRefresh, unitLabel }) {
+export default function IncidentsPage({ incidents, loading, busyId, onAccept, onStatus, onRefresh, unitLabel, currentUserId }) {
   return (
     <>
       <PageHeader
@@ -19,7 +19,7 @@ export default function IncidentsPage({ incidents, loading, busyId, onAccept, on
           <h2>{unitLabel} priority queue</h2>
           <span className="rescue-status-pill rescue-status-pill--danger">{incidents.length} active</span>
         </header>
-        <IncidentList incidents={incidents} loading={loading} busyId={busyId} onAccept={onAccept} onStatus={onStatus} unitLabel={unitLabel} />
+        <IncidentList incidents={incidents} loading={loading} busyId={busyId} onAccept={onAccept} onStatus={onStatus} unitLabel={unitLabel} currentUserId={currentUserId} />
       </section>
     </>
   );

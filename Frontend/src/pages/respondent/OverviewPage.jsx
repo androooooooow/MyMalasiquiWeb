@@ -54,7 +54,7 @@ export default function OverviewPage({ user, incidents, loading, busyId, onNavig
             <h2>Incident queue</h2>
             <span className="rescue-status-pill rescue-status-pill--danger">{incidents.length} active</span>
           </header>
-          <IncidentList incidents={incidents} loading={loading} busyId={busyId} onAccept={onAccept} onStatus={onStatus} unitLabel={unitLabel} />
+          <IncidentList incidents={incidents} loading={loading} busyId={busyId} onAccept={onAccept} onStatus={onStatus} unitLabel={unitLabel} currentUserId={user.id} />
         </article>
       </section>
     </>

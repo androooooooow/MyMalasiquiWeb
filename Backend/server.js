@@ -12,10 +12,29 @@ import respondentActionRoutes from './routes/respondentAction.js';
 dotenv.config();
 
 // Allowed origins: web frontend + mobile app
-const allowedOrigins = [
-    process.env.CLIENT_URL || "http://localhost:5173",
+const allowedOrigins = new Set([
+    process.env.CLIENT_URL || 'http://localhost:5173',
     process.env.MOBILE_URL,
-].filter(Boolean);
+].filter(Boolean));
+
+// Vite may be opened through either loopback hostname. CORS treats them as
+// distinct origins even though both refer to this computer.
+if (process.env.NODE_ENV !== 'production') {
+    for (const origin of [...allowedOrigins]) {
+        try {
+            const url = new URL(origin);
+            if (url.hostname === 'localhost') {
+                url.hostname = '127.0.0.1';
+                allowedOrigins.add(url.origin);
+            } else if (url.hostname === '127.0.0.1') {
+                url.hostname = 'localhost';
+                allowedOrigins.add(url.origin);
+            }
+        } catch {
+            // Ignore invalid configured origins.
+        }
+    }
+}
 
 const app = express();
 app.disable('x-powered-by');
@@ -25,7 +44,7 @@ app.use(helmet({
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (e.g. mobile apps, Postman, curl)
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.has(origin)) {
             callback(null, true);
         } else {
             callback(new Error("Not allowed by CORS"));

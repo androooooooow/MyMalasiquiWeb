@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { apiBaseUrl } from './baseUrl';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: apiBaseUrl(),
   withCredentials: true,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
@@ -25,6 +26,11 @@ export async function fetchActiveEmergencyRequest() {
 export async function fetchResponderQueue() {
   const { data } = await api.get('/respondent-actions/queue');
   return data.emergencies;
+}
+
+export async function fetchResponseTeam() {
+  const { data } = await api.get('/respondent-actions/team');
+  return data.members;
 }
 
 export async function acceptEmergencyRequest(id) {

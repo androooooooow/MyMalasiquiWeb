@@ -24,6 +24,7 @@ const emergencyInclude = {
     citizen: { select: { id: true, name: true, address: true, phoneNum: true } },
     assignedResponder: { select: { id: true, name: true, phoneNum: true, responderUnit: true } },
 };
+const activeStatuses = ['ACCEPTED', 'EN_ROUTE'];
 
 function servicesForResponder(user) {
     return servicesByResponderUnit[user.responder_unit] || [];
@@ -40,6 +41,32 @@ function parseId(req, res) {
 
 router.use(protect);
 
+router.get('/team', allowRoles('respondent'), async (req, res, next) => {
+    try {
+        const unit = req.user.responder_unit;
+        if (!unit) return res.status(403).json({ message: 'Your responder account does not have a response unit assigned.' });
+        const members = await prisma.user.findMany({
+            where: { role: 'respondent', responderUnit: unit },
+            select: {
+                id: true,
+                name: true,
+                assignedEmergencyRequests: {
+                    where: { status: { in: activeStatuses } },
+                    select: {
+                        id: true, status: true, service: true, acceptedAt: true,
+                        citizen: { select: { name: true } },
+                    },
+                    orderBy: { acceptedAt: 'desc' },
+                },
+            },
+            orderBy: { name: 'asc' },
+        });
+        return res.json({ members });
+    } catch (error) {
+        next(error);
+    }
+});
+
 router.get('/queue', allowRoles('respondent', 'admin'), async (req, res, next) => {
     try {
         const responderServices = servicesForResponder(req.user);
@@ -51,7 +78,7 @@ router.get('/queue', allowRoles('respondent', 'admin'), async (req, res, next) =
             : {
                 OR: [
                     { status: 'PENDING', assignedResponderId: null, service: { in: responderServices } },
-                    { assignedResponderId: req.user.id, status: { in: ['ACCEPTED', 'EN_ROUTE'] } },
+                    { assignedResponder: { responderUnit: req.user.responder_unit }, status: { in: activeStatuses } },
                 ],
             };
         const emergencies = await prisma.emergencyRequest.findMany({

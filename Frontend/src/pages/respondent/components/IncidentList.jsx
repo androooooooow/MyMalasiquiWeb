@@ -1,6 +1,7 @@
 import AppIcon from '../../../components/AppIcon';
 import { SERVICE_LABELS } from '../constants';
 import { timeLabel } from '../utils';
+import googleDirectionsUrl from './googleDirectionsUrl';
 
 export default function IncidentList({
   incidents,
@@ -8,6 +9,7 @@ export default function IncidentList({
   busyId,
   onAccept,
   onStatus,
+  currentUserId,
   unitLabel = 'your unit',
 }) {
   if (loading) {
@@ -38,9 +40,16 @@ export default function IncidentList({
             <small>{incident.citizen.name} · {incident.landmark || incident.citizen.address || 'GPS location provided'}</small>
             <small className="responder-incident__description">{incident.description}</small>
             <small>{incident.latitude.toFixed(6)}, {incident.longitude.toFixed(6)} · ±{incident.accuracyMeters} m</small>
+            {incident.assignedResponder && (
+              <small className="responder-incident__assignee">
+                <AppIcon name="user" size={13} /> Accepted by {incident.assignedResponder.name}
+                {incident.assignedResponder.id === currentUserId ? ' (you)' : ''}
+                {incident.status === 'EN_ROUTE' ? ' · On the way' : ''}
+              </small>
+            )}
             <a
               className="responder-map-link"
-              href={`https://www.google.com/maps/dir/?api=1&destination=${incident.latitude},${incident.longitude}`}
+              href={googleDirectionsUrl(incident)}
               target="_blank"
               rel="noreferrer"
             >
@@ -57,12 +66,12 @@ export default function IncidentList({
                 {busyId === incident.id ? 'Accepting…' : 'Accept request'}
               </button>
             )}
-            {incident.status === 'ACCEPTED' && (
+            {incident.status === 'ACCEPTED' && incident.assignedResponder?.id === currentUserId && (
               <button className="rescue-button rescue-button--primary rescue-button--small" type="button" disabled={busyId === incident.id} onClick={() => onStatus(incident.id, 'EN_ROUTE')}>
                 Mark en route
               </button>
             )}
-            {incident.status === 'EN_ROUTE' && (
+            {incident.status === 'EN_ROUTE' && incident.assignedResponder?.id === currentUserId && (
               <button className="rescue-button rescue-button--primary rescue-button--small" type="button" disabled={busyId === incident.id} onClick={() => onStatus(incident.id, 'RESOLVED')}>
                 Resolve
               </button>

@@ -68,7 +68,10 @@ export default function Login({ onAuthenticated }) {
       onAuthenticated(data.user);
       navigate('/', { replace: true });
     } catch (requestError) {
-      setError(getRequestError(requestError, 'Google sign-in was not completed.'));
+      const connectionError = requestError?.code === 'ECONNABORTED' || requestError?.code === 'ETIMEDOUT'
+        ? 'Google verification took too long. Please try again.'
+        : 'Could not contact the sign-in server. Check that the backend is running and use the configured frontend address.';
+      setError(getRequestError(requestError, connectionError));
     }
   }
 

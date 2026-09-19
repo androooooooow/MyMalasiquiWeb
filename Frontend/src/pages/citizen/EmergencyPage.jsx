@@ -35,6 +35,7 @@ export default function EmergencyPage() {
   const [submittedEmergency, setSubmittedEmergency] = useState(null);
   const [activeEmergency, setActiveEmergency] = useState(null);
   const [loadingActive, setLoadingActive] = useState(true);
+  const [showGoogleMap, setShowGoogleMap] = useState(false);
 
   const selectedService = SERVICES.find((service) => service.id === form.service);
 
@@ -157,7 +158,7 @@ export default function EmergencyPage() {
     const emergency = activeEmergency || submittedEmergency;
     const status = STATUS_COPY[emergency?.status] || STATUS_COPY.PENDING;
     const responderLocationReady = Number.isFinite(emergency?.responderLatitude) && Number.isFinite(emergency?.responderLongitude);
-    const responderMapUrl = responderLocationReady
+    const responderMapUrl = showGoogleMap && responderLocationReady
       ? `https://www.google.com/maps?q=${emergency.responderLatitude},${emergency.responderLongitude}&z=16&output=embed`
       : null;
     return (
@@ -182,8 +183,10 @@ export default function EmergencyPage() {
           </article>
           <article className="rescue-card emergency-tracker__map-card">
             <header className="rescue-card__header"><h2>Responder live location</h2><span className="rescue-status-pill">Auto-updates</span></header>
-            {responderMapUrl ? <iframe className="google-map-frame" title="Responder live location" src={responderMapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <div className="emergency-map-waiting"><AppIcon name="location" size={28} /><strong>Waiting for responder GPS</strong><p>The map will appear when the assigned responder starts travelling.</p></div>}
-            {emergency?.responderLocationUpdatedAt && <p className="emergency-map-updated">Last GPS update: {new Date(emergency.responderLocationUpdatedAt).toLocaleTimeString()}</p>}
+            {responderMapUrl
+              ? <iframe className="google-map-frame" title={`Google map showing ${emergency.assignedResponder?.name || 'responder'} location`} src={responderMapUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+              : <div className="emergency-map-waiting"><AppIcon name="location" size={28} /><strong>{responderLocationReady ? 'Responder location is ready' : 'Waiting for responder GPS'}</strong><p>{responderLocationReady ? 'Showing this map shares the responder coordinates with Google.' : 'The map becomes available when the assigned responder shares a location.'}</p>{responderLocationReady && <button className="rescue-button rescue-button--primary rescue-button--small" type="button" onClick={() => setShowGoogleMap(true)}>Show Google map</button>}</div>}
+            {emergency?.responderLocationUpdatedAt && <p className="emergency-map-updated">{emergency?.assignedResponder?.name || 'Responder'} · Last GPS update: {new Date(emergency.responderLocationUpdatedAt).toLocaleTimeString()}</p>}
           </article>
         </div>
       </section>

@@ -727,6 +727,14 @@
 .responder-incident__actions { display: grid; min-width: 128px; justify-items: end; gap: 0.45rem; }
 .responder-incident__actions .rescue-button { white-space: nowrap; }
 .responder-map-link { display: inline-flex; align-items: center; gap: 0.3rem; width: fit-content; margin-top: 0.3rem; color: var(--teal-600); font-size: 0.65rem; font-weight: 750; text-decoration: none; }
+.responder-incident__assignee { display: inline-flex; align-items: center; gap: 0.35rem; width: fit-content; margin-top: 0.4rem; padding: 0.3rem 0.5rem; border-radius: 0.45rem; color: var(--teal-700) !important; background: var(--teal-100); font-weight: 750; }
+.responder-team-name { font-size: 1rem !important; }
+.responder-team-assignment { display: grid; gap: 0.2rem; padding: 0.55rem; border-radius: 0.6rem; background: var(--teal-100); }
+.responder-team-assignment strong { font-size: 0.7rem; }
+.responder-team-assignment span { color: var(--ink-600); font-size: 0.65rem; }
+.dispatch-selector { display: grid; gap: 0.4rem; border-bottom: 1px solid var(--line); }
+.dispatch-selector label { font-size: 0.7rem; font-weight: 750; }
+.dispatch-selector select { width: 100%; padding: 0.65rem; border: 1px solid var(--line); border-radius: 0.6rem; background: #fff; }
 .responder-google-map { overflow: hidden; }
 .responder-google-map--tall .google-map-frame { height: 520px; }
 .responder-google-map__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 1rem; border-top: 1px solid var(--line); }

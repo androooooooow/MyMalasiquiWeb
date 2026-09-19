@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { apiBaseUrl } from './baseUrl';
 
 // Keep the API address configurable for deployment, while matching the local
 // Express server that is already in this project.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: apiBaseUrl(),
   withCredentials: true,
   timeout: 10000,
   headers: {
@@ -27,7 +28,7 @@ export async function register(details) {
 }
 
 export async function googleLogin(credential) {
-  const { data } = await api.post('/auth/google', { credential });
+  const { data } = await api.post('/auth/google', { credential }, { timeout: 30000 });
   return data;
 }
 

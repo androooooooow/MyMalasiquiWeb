@@ -67,6 +67,18 @@ const sensitiveLimiter = rateLimit({
     message: { message: 'Too many attempts. Please wait and try again.' },
 });
 
+// Google Identity Services may retry its credential callback while the popup is
+// closing. Keep a separate limiter so registration, email verification, and
+// password-login attempts do not consume the Google sign-in allowance.
+const googleSignInLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 15,
+    skipSuccessfulRequests: true,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { message: 'Too many Google sign-in attempts. Please wait one minute and try again.' },
+});
+
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -329,7 +341,7 @@ router.post('/login', sensitiveLimiter, validate(loginSchema), async (req, res, 
     }
 });
 
-router.post('/google', sensitiveLimiter, validate(googleSchema), async (req, res, next) => {
+router.post('/google', googleSignInLimiter, validate(googleSchema), async (req, res, next) => {
     res.setHeader('X-Rescue-Auth-Version', 'google-cert-v5-avast-safe');
     try {
         if (!process.env.GOOGLE_CLIENT_ID) {

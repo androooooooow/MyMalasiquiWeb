@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   acceptEmergencyRequest,
+  fetchResponseTeam,
   fetchResponderQueue,
   getEmergencyError,
   updateEmergencyStatus,
@@ -11,9 +12,13 @@ const locationOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 1500
 
 export default function useResponderOperations(user) {
   const [incidents, setIncidents] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
+  const travellingIdsKey = incidents
+    .filter((incident) => incident.status === 'EN_ROUTE' && incident.assignedResponder?.id === user.id)
+    .map((incident) => incident.id).sort().join(',');
 
   const loadQueue = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -34,10 +39,23 @@ export default function useResponderOperations(user) {
   }, [loadQueue]);
 
   useEffect(() => {
-    const travelling = incidents.filter(
-      (incident) => incident.status === 'EN_ROUTE' && incident.assignedResponder?.id === user.id,
-    );
-    if (!travelling.length || !navigator.geolocation) return undefined;
+    let active = true;
+    const loadTeam = async () => {
+      try {
+        const members = await fetchResponseTeam();
+        if (active) setTeamMembers(members);
+      } catch {
+        // Keep the incident queue usable if the team roster is unavailable.
+      }
+    };
+    loadTeam();
+    const interval = window.setInterval(loadTeam, 5000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, []);
+
+  useEffect(() => {
+    if (!travellingIdsKey || !navigator.geolocation) return undefined;
+    const travellingIds = travellingIdsKey.split(',');
 
     let lastSentAt = 0;
     const watchId = navigator.geolocation.watchPosition(async (position) => {
@@ -50,11 +68,11 @@ export default function useResponderOperations(user) {
         accuracyMeters: Math.round(position.coords.accuracy),
       };
       const updates = await Promise.allSettled(
-        travelling.map((incident) => updateResponderLocation(incident.id, location)),
+        travellingIds.map((id) => updateResponderLocation(id, location)),
       );
 
       setIncidents((current) => current.map((incident) => {
-        const index = travelling.findIndex((item) => item.id === incident.id);
+        const index = travellingIds.indexOf(incident.id);
         return index >= 0 && updates[index].status === 'fulfilled' ? updates[index].value : incident;
       }));
     }, () => {
@@ -62,7 +80,7 @@ export default function useResponderOperations(user) {
     }, { ...locationOptions, maximumAge: 5000 });
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [incidents, user.id]);
+  }, [travellingIdsKey]);
 
   async function acceptIncident(id) {
     setBusyId(id);
@@ -109,6 +127,7 @@ export default function useResponderOperations(user) {
 
   return {
     incidents,
+    teamMembers,
     loading,
     error,
     busyId,
