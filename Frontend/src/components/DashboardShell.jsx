@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import AppIcon from './AppIcon';
 import '../styles/dashboard.css';
@@ -7,9 +7,9 @@ import '../styles/dashboard.css';
 export default function DashboardShell({
   user,
   roleLabel,
+  basePath,
   navItems,
   activePage,
-  onNavigate,
   children,
   onLogout,
   showEmergencyButton = false,
@@ -24,11 +24,6 @@ export default function DashboardShell({
     month: 'short',
     day: 'numeric',
   }).format(new Date());
-
-  function selectPage(key) {
-    onNavigate(key);
-    setNavOpen(false);
-  }
 
   async function handleLogout() {
     setLogoutError('');
@@ -67,26 +62,26 @@ export default function DashboardShell({
           <ul>
             {navItems.map((item) => (
               <li key={item.key}>
-                <button
-                  type="button"
+                <Link
+                  to={`${basePath}/${item.path}`}
                   className={`rescue-nav__item${item.key === activePage ? ' rescue-nav__item--active' : ''}`}
-                  onClick={() => selectPage(item.key)}
+                  onClick={() => setNavOpen(false)}
                   aria-current={item.key === activePage ? 'page' : undefined}
                 >
                   <AppIcon name={item.icon} />
                   <span>{item.label}</span>
                   {item.badge && <span className="rescue-nav__badge">{item.badge}</span>}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
         </nav>
 
         {showEmergencyButton && (
-          <button type="button" className="rescue-sos" onClick={() => selectPage('emergency')}>
+          <Link to={`${basePath}/emergency`} className="rescue-sos" onClick={() => setNavOpen(false)}>
             <span className="rescue-sos__icon"><AppIcon name="alert" size={18} /></span>
             <span><strong>Request rescue</strong><small>Send an in-app emergency</small></span>
-          </button>
+          </Link>
         )}
 
         <div className="rescue-sidebar__footer">

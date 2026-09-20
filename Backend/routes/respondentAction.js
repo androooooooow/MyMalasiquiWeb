@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../config/db.js';
 import { allowRoles, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { recordActivity } from '../services/activityLog.js';
 
 const router = express.Router();
 
@@ -112,6 +113,9 @@ router.patch('/:id/accept', allowRoles('respondent'), async (req, res, next) => 
         if (!accepted) {
             return res.status(409).json({ message: 'This request is not available to your unit or was already accepted.' });
         }
+        await recordActivity(req.user, 'EMERGENCY_ACCEPTED', {
+            subjectType: 'emergency', subjectId: accepted.id, details: accepted.service,
+        });
         return res.json({ message: 'Emergency request accepted.', emergency: accepted });
     } catch (error) {
         next(error);
@@ -142,6 +146,9 @@ router.patch('/:id/status', allowRoles('respondent'), validate(statusSchema), as
                 activeCitizenId: nextStatus === 'RESOLVED' ? null : current.activeCitizenId,
             },
             include: emergencyInclude,
+        });
+        await recordActivity(req.user, nextStatus === 'EN_ROUTE' ? 'RESPONDER_EN_ROUTE' : 'EMERGENCY_RESOLVED', {
+            subjectType: 'emergency', subjectId: emergency.id, details: emergency.service,
         });
         return res.json({ message: 'Emergency status updated.', emergency });
     } catch (error) {

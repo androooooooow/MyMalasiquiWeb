@@ -6,6 +6,8 @@ import AdminDashboard from './pages/admin/admin_dashboard';
 import Login from './auth/Login';
 import Register from './auth/Register';
 import { CheckEmail, VerifyEmail } from './auth/EmailVerification';
+import ForgotPassword from './auth/ForgotPassword';
+import ResponderApplicationPending from './auth/ResponderApplicationPending';
 import { fetchCurrentUser } from './api/auth';
 
 const previewRole = import.meta.env.DEV
@@ -55,9 +57,9 @@ function App() {
 
   function homeRedirect() {
     if (!user) return '/login';
-    if (user.role === 'respondent') return '/respondent';
-    if (user.role === 'citizen') return '/citizen';
-    if (user.role === 'admin') return '/admin';
+    if (user.role === 'respondent') return '/respondent/operations';
+    if (user.role === 'citizen') return '/citizen/overview';
+    if (user.role === 'admin') return '/admin/command-center';
     return '/login';
   }
 
@@ -66,7 +68,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to={homeRedirect()} replace />} />
         <Route
-          path="/respondent"
+          path="/respondent/*"
           element={
             user?.role === 'respondent'
               ? <RespondentDashboard user={user} onUserUpdated={setUser} onLogout={() => setUser(null)} />
@@ -74,7 +76,7 @@ function App() {
           }
         />
         <Route
-          path="/citizen"
+          path="/citizen/*"
           element={
             user?.role === 'citizen'
               ? <CitizenDashboard user={user} onUserUpdated={setUser} onLogout={() => setUser(null)} />
@@ -82,7 +84,7 @@ function App() {
           }
         />
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             user?.role === 'admin'
               ? <AdminDashboard user={user} onLogout={() => setUser(null)} />
@@ -97,6 +99,8 @@ function App() {
           path="/register"
           element={user ? <Navigate to="/" replace /> : <Register />}
         />
+        <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
+        <Route path="/responder-application" element={user ? <Navigate to="/" replace /> : <ResponderApplicationPending />} />
         <Route path="/check-email" element={user ? <Navigate to="/" replace /> : <CheckEmail onAuthenticated={setUser} />} />
         <Route path="/verify-email" element={user ? <Navigate to="/" replace /> : <VerifyEmail onAuthenticated={setUser} />} />
         <Route path="/Register" element={<Navigate to="/register" replace />} />

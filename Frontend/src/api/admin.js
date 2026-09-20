@@ -23,8 +23,28 @@ export async function fetchIncidentAnalytics(period) {
   return data;
 }
 
-export async function fetchAdminAuditLog(page) {
-  const { data } = await api.get('/admin/audit-log', { params: { page } });
+export async function fetchAdminAuditLog(filters) {
+  const { data } = await api.get('/admin/audit-log', { params: filters });
+  return data;
+}
+
+export async function fetchResponderApplications(filters) {
+  const { data } = await api.get('/admin/responder-applications', { params: filters });
+  return data;
+}
+
+export async function approveResponderApplication(id) {
+  const { data } = await api.post(`/admin/responder-applications/${id}/approve`, {}, { timeout: 30000 });
+  return data;
+}
+
+export async function rejectResponderApplication(id, reason) {
+  const { data } = await api.post(`/admin/responder-applications/${id}/reject`, { reason }, { timeout: 30000 });
+  return data;
+}
+
+export async function resendResponderApprovalEmail(id) {
+  const { data } = await api.post(`/admin/responder-applications/${id}/resend-verification`, {}, { timeout: 30000 });
   return data;
 }
 

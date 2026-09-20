@@ -47,6 +47,16 @@ export async function resendVerification(email) {
   return data;
 }
 
+export async function requestPasswordReset(email) {
+  const { data } = await api.post('/auth/forgot-password', { email });
+  return data;
+}
+
+export async function resetPassword(email, code, newPassword) {
+  const { data } = await api.post('/auth/reset-password', { email, code, newPassword });
+  return data;
+}
+
 export async function logout() {
   await api.post('/auth/logout');
 }

@@ -432,6 +432,12 @@ button:disabled {
   text-align: center;
 }
 
+.auth-help-link {
+  margin: -0.45rem 0 0;
+  font-size: 0.82rem;
+  text-align: right;
+}
+
 .verification-card {
   display: grid;
   gap: 1rem;

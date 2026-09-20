@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import AppIcon from '../../components/AppIcon';
 import DashboardShell from '../../components/DashboardShell';
+import useDashboardRoute from '../../hooks/useDashboardRoute';
 import CommunicationsPage from './CommunicationsPage';
 import DispatchPage from './DispatchPage';
 import IncidentsPage from './IncidentsPage';
@@ -11,7 +11,7 @@ import { NAV_ITEMS, RESPONDER_UNIT_LABELS } from './constants';
 import useResponderOperations from './useResponderOperations';
 
 export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
-  const [activePage, setActivePage] = useState('overview');
+  const { activePage, onNavigate } = useDashboardRoute('/respondent', NAV_ITEMS);
   const {
     incidents,
     teamMembers,
@@ -52,7 +52,7 @@ export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
         return <ProfilePage user={user} onUserUpdated={onUserUpdated} unitLabel={unitLabel} />;
       case 'overview':
       default:
-        return <OverviewPage user={user} {...incidentProps} onNavigate={setActivePage} />;
+        return <OverviewPage user={user} {...incidentProps} onNavigate={onNavigate} />;
     }
   }
 
@@ -60,9 +60,9 @@ export default function RespondentDashboard({ user, onLogout, onUserUpdated }) {
     <DashboardShell
       user={user}
       roleLabel={`Responder · ${unitLabel}`}
+      basePath="/respondent"
       navItems={navItems}
       activePage={activePage}
-      onNavigate={setActivePage}
       onLogout={onLogout}
     >
       {error && <div className="emergency-error" role="alert"><AppIcon name="alert" size={18} /> {error}</div>}

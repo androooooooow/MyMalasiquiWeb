@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import prisma from '../config/db.js';
 import adminRoutes from '../routes/admin.js';
 import authRoutes from '../routes/auth.js';
@@ -18,13 +19,13 @@ test('admin can block and unblock a user with an audit trail', async () => {
         admin = await prisma.user.create({
             data: {
                 name: 'Admin Test', email: `admin-${unique}@example.invalid`, role: 'admin',
-                address: 'Test address', phoneNum: '', password: 'test-only', emailVerifiedAt: new Date(),
+                address: 'Test address', phoneNum: '', password: await bcrypt.hash('TestPassword123', 10), emailVerifiedAt: new Date(),
             },
         });
         citizen = await prisma.user.create({
             data: {
                 name: 'Citizen Test', email: `citizen-${unique}@example.invalid`, role: 'citizen',
-                address: 'Test address', phoneNum: '', password: 'test-only', emailVerifiedAt: new Date(),
+                address: 'Test address', phoneNum: '', password: await bcrypt.hash('TestPassword123', 10), emailVerifiedAt: new Date(),
             },
         });
 
@@ -46,6 +47,14 @@ test('admin can block and unblock a user with an audit trail', async () => {
 
         assert.equal((await request('/api/admin/overview', citizenToken)).status, 403);
         assert.equal((await request('/api/admin/overview', adminToken)).status, 200);
+        const loginResponse = await fetch(`${base}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: citizen.email, password: 'TestPassword123' }),
+        });
+        assert.equal(loginResponse.status, 200);
+        const signIns = await (await request('/api/admin/audit-log?role=citizen&action=LOGIN_PASSWORD', adminToken)).json();
+        assert.ok(signIns.entries.some((entry) => entry.actorEmail === citizen.email && entry.action === 'LOGIN_PASSWORD'));
         for (const period of ['day', 'week', 'month', 'year']) {
             const response = await request(`/api/admin/analytics?period=${period}`, adminToken);
             assert.equal(response.status, 200);
@@ -60,7 +69,7 @@ test('admin can block and unblock a user with an audit trail', async () => {
         assert.equal(blocked.status, 200);
         assert.equal((await request('/api/auth/me', citizenToken)).status, 403);
         const logs = await (await request('/api/admin/audit-log', adminToken)).json();
-        assert.ok(logs.entries.some((entry) => entry.targetUser.id === citizen.id && entry.action === 'USER_BLOCKED'));
+        assert.ok(logs.entries.some((entry) => entry.subjectId === String(citizen.id) && entry.action === 'USER_BLOCKED'));
 
         const unblocked = await request(`/api/admin/users/${citizen.id}/block`, adminToken, {
             method: 'PATCH', body: JSON.stringify({ blocked: false }),
@@ -70,6 +79,7 @@ test('admin can block and unblock a user with an audit trail', async () => {
     } finally {
         if (server) await new Promise((resolve) => server.close(resolve));
         if (admin || citizen) {
+            await prisma.activityLog.deleteMany({ where: { actorId: { in: [admin?.id, citizen?.id].filter(Boolean) } } });
             await prisma.adminAuditLog.deleteMany({ where: { OR: [
                 ...(admin ? [{ actorId: admin.id }] : []),
                 ...(citizen ? [{ targetUserId: citizen.id }] : []),

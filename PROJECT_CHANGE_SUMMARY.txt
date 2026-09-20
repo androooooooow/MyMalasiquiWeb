@@ -32,6 +32,7 @@ This document contains the implementation history, explanations, fixes, and arch
 - Added a database-level active-citizen lock to prevent simultaneous emergency requests from the same citizen.
 - Added responder assignment, responder location, accuracy, and workflow timestamps.
 - Added responder-unit enums and emergency-service enums.
+- Added ActivityLog and ResponderApplication models, plus one-time password-reset fields and a session version on users.
 - Added support for DATABASE_URL and existing DB_* environment variables.
 
 
@@ -43,6 +44,7 @@ This document contains the implementation history, explanations, fixes, and arch
 - Added authentication and role middleware.
 - Added Helmet security headers, restricted CORS origins, JSON request limits, and rate limiting.
 - Protected backend routes verify the database user and require a verified email.
+- Password reset increments the session version so previously issued web and mobile sign-in tokens become invalid.
 
 
 5. GOOGLE SIGN-IN
@@ -66,6 +68,7 @@ This document contains the implementation history, explanations, fixes, and arch
 - Added a verification page with email, one-time-code input, resend action, loading state, and errors.
 - Unverified users who attempt to log in are redirected to the verification page.
 - Existing pending accounts can be refreshed and sent a new code instead of receiving a permanent 409 conflict.
+- New responder applicants do not get a user account or verification code until an administrator approves the application.
 
 
 7. GMAIL SMTP FIXES
@@ -91,7 +94,7 @@ This document contains the implementation history, explanations, fixes, and arch
 
 9. RESPONDER UNITS AND REQUEST ROUTING
 --------------------------------------
-- Added required responder-unit selection during responder registration.
+- Added required responder-unit selection during responder application.
 - Added Health/Ambulance, PNP/Police, BFP/Fire Truck, and MDRRMO units.
 - Ambulance requests are visible to Health/Ambulance responders.
 - Police requests are visible to PNP/Police responders.
@@ -176,19 +179,63 @@ This document contains the implementation history, explanations, fixes, and arch
 17. ADMIN DASHBOARD AND BACKEND
 -------------------------------
 - Replaced the admin frontend placeholders with a command center based on live database totals.
-- Added recent incident and recent admin-action lists to the admin home page.
+- Added recent incident and recent activity lists to the admin home page.
 - Added searchable, filtered, paginated user management for citizen, responder, and administrator accounts.
 - Admins can block or unblock citizens and responders; they cannot block themselves or other administrators.
 - Blocking requires a reason and immediately denies password login, Google sign-in, session access, and protected backend routes.
 - Added incident analytics grouped by day, week, month, and year, including zero-count periods. These counts use UTC request-creation dates.
-- Added a database-backed audit log recording the admin actor, target user, action, reason, and timestamp.
+- Added an initial database-backed admin access-change audit log; the broader activity log is described in section 18.
 - Added an admin-only API for overview, users, access changes, analytics, and audit history.
 - Added a local, one-time admin bootstrap command. Public registration still cannot create an administrator.
 - The admin migration was applied to PostgreSQL. Frontend lint and production build passed.
 - An integration test verified role restrictions, analytics, block/unblock, denial of a blocked session, and audit records. Its temporary accounts and records were removed.
-- Prisma client generation reported a Windows file lock while the existing backend process was running; the generated client could query the new admin model. Regenerate after stopping the running backend process.
+- A temporary Windows Prisma engine file lock was resolved; the Prisma client was regenerated after stopping that exact project engine process.
+
+
+18. EXPANDED ACTIVITY AUDIT LOG
+-------------------------------
+- Added a dedicated ActivityLog table and migration. Existing admin block/unblock records were copied into it.
+- Records successful password and Google sign-ins, sign-outs, account registration, email verification, profile edits, emergency creation, responder acceptance and status changes, chat sends, password reset actions, and admin account-access changes.
+- The log stores the actor's name, email, role, timestamp, action, and related record ID. It does not store passwords, verification codes, chat bodies, or continuous GPS updates.
+- The admin audit page now supports filtering by role and action plus searching by actor name or email; the command center shows recent activity.
+- Read-only page visits and historical sign-ins from before this change are not recorded or recoverable.
+- The activity migration was applied locally; the updated admin integration test passed.
+
+
+19. FORGOT-PASSWORD FLOW
+------------------------
+- Added a Forgot password? link, a two-step recovery page, and backend endpoints to request a six-digit email code and submit a new password.
+- Reset codes expire after 10 minutes, are stored only as purpose-specific HMAC digests, and cannot be reused.
+- Added per-IP request limits, a per-account resend cooldown, and a maximum of five incorrect code attempts per issued code.
+- The request endpoint uses a generic response so it does not disclose whether an email belongs to a verified account.
+- Resetting a password clears the code, changes the bcrypt password hash, and invalidates older sessions by incrementing the user's session version.
+- Added password-reset events to the admin activity log. The local migration and integration test passed.
+- The integration test used a seeded code; live Gmail SMTP delivery was not exercised by that test.
+
+
+20. ADMIN-APPROVED RESPONDER APPLICATIONS
+-----------------------------------------
+- Responder signup now creates a pending ResponderApplication, not a User account. Citizen signup remains immediate and still requires email verification.
+- Admins have a dedicated Responder approvals page with pending, approved, and rejected views, applicant details, and approve/reject actions.
+- Approval atomically creates the responder account for the selected unit but leaves it unverified; the approval email contains a six-digit verification code.
+- The responder cannot sign in until both admin approval and email verification are complete. Pending applicants also cannot bypass review through Google sign-in.
+- A failed approval email can be retried from the admin page. Rejection requires a reason, sends a decision email when delivery is available, and allows a new application.
+- Pending password hashes are never returned in admin API responses and are cleared from the application after approval or rejection.
+- Approval and rejection are recorded in the admin activity log. Existing responder accounts were not retroactively put through review.
+- The local migration was applied. An end-to-end test used a local fake SMTP server to verify application, approval email, code verification, sign-in, rejection, and role restrictions; no real recipient was emailed.
+- Admin approval is a workflow decision based on submitted details, not independent proof of responder employment or identity. Administrators must verify affiliation separately.
+
+
+21. PAGE-SPECIFIC DASHBOARD ROUTING
+-----------------------------------
+- Citizen, responder, and admin menu items now have distinct browser paths instead of a single URL per role.
+- Example paths: /citizen/emergency, /respondent/dispatch-map, and /admin/command-center.
+- Sidebar items are actual in-app links; selected-page state follows the URL, so Back/Forward, direct links, and bookmarks work.
+- Legacy /citizen, /respondent, and /admin paths redirect to their role's overview page. Unknown subpages return to that overview.
+- Added a Vercel SPA rewrite so a direct refresh of a frontend route can load index.html when deployed there.
+- Frontend production build, lint, and route-matching checks passed.
 
 
 Current architectural boundary
 ------------------------------
-The application persists authentication, verification, profiles, emergency requests, unit routing, assignment, workflow status, responder GPS information, unit-specific chat messages, account blocks, and admin audit entries. Emergency and team views use periodic polling; chat uses Server-Sent Events for live updates on one backend instance. Admin analytics counts incidents by request creation date. Future work can add a shared event broker for multi-server chat, push notifications, route ETA calculations, responder availability, and deeper reporting.
+The application persists authentication, email verification and password reset, profiles, responder applications and admin decisions, emergency requests, unit routing, assignment, workflow status, responder GPS information, unit-specific chat messages, account blocks, and activity audit entries. Emergency and team views use periodic polling; chat uses Server-Sent Events for live updates on one backend instance. Admin analytics counts incidents by request creation date. The mobile client UI is not covered by the recent web-only dashboard routing and responder-application screen changes. Future work can add independent responder identity vetting, a shared event broker for multi-server chat, push notifications, route ETA calculations, responder availability, and deeper reporting.

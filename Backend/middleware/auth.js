@@ -23,10 +23,10 @@ export const protect = async (req, res, next) => {
 
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
-            select: { id: true, name: true, address: true, phoneNum: true, email: true, role: true, responderUnit: true, emailVerifiedAt: true, blockedAt: true },
+            select: { id: true, name: true, address: true, phoneNum: true, email: true, role: true, responderUnit: true, emailVerifiedAt: true, blockedAt: true, sessionVersion: true },
         });
 
-        if (!user || !user.emailVerifiedAt) {
+        if (!user || !user.emailVerifiedAt || (decoded.sv ?? 0) !== user.sessionVersion) {
             return res.status(401).json({message: "Not authorized"});
         }
         if (user.blockedAt) {

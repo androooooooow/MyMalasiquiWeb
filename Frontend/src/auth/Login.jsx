@@ -134,6 +134,8 @@ export default function Login({ onAuthenticated }) {
           </div>
         </label>
 
+        <p className="auth-help-link"><Link to={`/forgot-password?email=${encodeURIComponent(form.email.trim())}`}>Forgot password?</Link></p>
+
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>

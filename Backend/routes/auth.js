@@ -9,8 +9,10 @@ import { z } from 'zod';
 import prisma from '../config/db.js';
 import { protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { EmailDeliveryError, isEmailDeliveryConfigured, sendVerificationEmail } from '../services/email.js';
+import { EmailDeliveryError, isEmailDeliveryConfigured, sendPasswordResetEmail, sendVerificationEmail } from '../services/email.js';
 import { trustedCertificates } from '../config/trustedCertificates.js';
+import { recordActivity } from '../services/activityLog.js';
+import { newVerificationCode, verificationDigest } from '../services/verificationCode.js';
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -52,6 +54,12 @@ const verificationCodeSchema = z.object({
     code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit verification code'),
 }).strict();
 const resendSchema = z.object({ email: emailSchema }).strict();
+const forgotPasswordSchema = z.object({ email: emailSchema }).strict();
+const resetPasswordSchema = z.object({
+    email: emailSchema,
+    code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit reset code'),
+    newPassword: passwordSchema,
+}).strict();
 const googleSchema = z.object({ credential: z.string().min(100).max(5000) }).strict();
 const profileSchema = z.object({
     name: nameSchema,
@@ -79,6 +87,21 @@ const googleSignInLimiter = rateLimit({
     message: { message: 'Too many Google sign-in attempts. Please wait one minute and try again.' },
 });
 
+const passwordResetRequestLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { message: 'Too many password reset requests. Please wait and try again.' },
+});
+const passwordResetConfirmLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { message: 'Too many reset attempts. Please wait and request a new code.' },
+});
+
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -87,21 +110,21 @@ const cookieOptions = {
     path: '/',
 };
 
-function generateSessionToken(id) {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+function generateSessionToken(user) {
+    return jwt.sign({ id: user.id, sv: user.sessionVersion }, process.env.JWT_SECRET, { expiresIn: '30d' });
 }
 
-function verificationDigest(email, code) {
+function passwordResetDigest(email, code) {
     return crypto.createHmac('sha256', process.env.JWT_SECRET)
-        .update(`${email}:${code}`)
+        .update(`password-reset:${email}:${code}`)
         .digest('hex');
 }
 
-function newVerificationCode(email) {
+function newPasswordResetCode(email) {
     const code = crypto.randomInt(100000, 1000000).toString();
     return {
         code,
-        digest: verificationDigest(email, code),
+        digest: passwordResetDigest(email, code),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     };
 }
@@ -132,7 +155,7 @@ function publicUser(user) {
 }
 
 function issueSession(res, user) {
-    const token = generateSessionToken(user.id);
+    const token = generateSessionToken(user);
     res.cookie('token', token, cookieOptions);
     return token;
 }
@@ -236,6 +259,30 @@ async function verifyGoogleCredential(credential) {
 router.post('/register', sensitiveLimiter, validate(registerSchema), async (req, res, next) => {
     try {
         const { name, address, phone_num, email, role, responder_unit, password } = req.validatedBody;
+        if (role === 'respondent') {
+            const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+            if (existingUser) return res.status(409).json({ message: 'An account with this email already exists. Sign in instead.' });
+            const existingApplication = await prisma.responderApplication.findUnique({ where: { email } });
+            if (existingApplication?.status === 'PENDING') {
+                return res.status(409).json({ message: 'Your responder application is already waiting for administrator approval.' });
+            }
+            if (existingApplication?.status === 'APPROVED') {
+                return res.status(409).json({ message: 'Your responder application was approved. Check your email for the verification code.' });
+            }
+            const applicationData = {
+                name, address, phoneNum: phone_num, responderUnit: responder_unit,
+                passwordHash: await bcrypt.hash(password, 12), status: 'PENDING',
+                reviewReason: null, reviewedAt: null, reviewedById: null, emailSentAt: null,
+            };
+            const application = existingApplication
+                ? await prisma.responderApplication.update({ where: { email }, data: applicationData })
+                : await prisma.responderApplication.create({ data: { ...applicationData, email } });
+            return res.status(201).json({
+                message: 'Your responder application was sent to the administrator. An approval email and verification code will arrive after review.',
+                email: application.email,
+                pendingApproval: true,
+            });
+        }
         if (!isEmailDeliveryConfigured()) {
             return res.status(503).json({
                 message: 'Email verification is not configured. Add the Gmail SMTP account and App Password to the backend.',
@@ -243,8 +290,15 @@ router.post('/register', sensitiveLimiter, validate(registerSchema), async (req,
             });
         }
         const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing && existing.role !== 'citizen') {
+            return res.status(409).json({ message: 'An account with this email already exists. Sign in instead.' });
+        }
         if (existing?.emailVerifiedAt) {
             return res.status(409).json({ message: 'An account with this email already exists. Sign in instead.' });
+        }
+        const pendingResponder = await prisma.responderApplication.findUnique({ where: { email }, select: { status: true } });
+        if (pendingResponder?.status === 'PENDING') {
+            return res.status(409).json({ message: 'This email has a responder application awaiting administrator review.' });
         }
 
         const verification = newVerificationCode(email);
@@ -263,6 +317,7 @@ router.post('/register', sensitiveLimiter, validate(registerSchema), async (req,
             : await prisma.user.create({ data: { ...accountData, email } });
 
         await sendVerificationEmail({ email: user.email, code: verification.code });
+        await recordActivity(user, existing ? 'ACCOUNT_REGISTRATION_UPDATED' : 'ACCOUNT_REGISTERED', { subjectType: 'user', subjectId: user.id });
         return res.status(existing ? 200 : 201).json({
             message: existing
                 ? 'Your pending account was updated. Enter the new 6-digit code sent to your email.'
@@ -271,6 +326,7 @@ router.post('/register', sensitiveLimiter, validate(registerSchema), async (req,
             requiresVerification: true,
         });
     } catch (error) {
+        if (error?.code === 'P2002') return res.status(409).json({ message: 'An account or responder application with this email already exists.' });
         if (emailDeliveryResponse(error, res)) return;
         next(error);
     }
@@ -291,6 +347,7 @@ router.post('/verify-email', sensitiveLimiter, validate(verificationCodeSchema),
             data: { emailVerifiedAt: new Date(), emailVerificationToken: null, verificationExpiresAt: null },
         });
         const token = issueSession(res, verified);
+        await recordActivity(verified, 'EMAIL_VERIFIED', { subjectType: 'user', subjectId: verified.id });
         return res.json({ message: 'Email verified successfully.', user: publicUser(verified), token });
     } catch (error) {
         next(error);
@@ -321,6 +378,100 @@ router.post('/resend-verification', sensitiveLimiter, validate(resendSchema), as
     }
 });
 
+const forgotPasswordMessage = 'If a verified account exists for this email, we have sent a 6-digit password reset code.';
+
+router.post('/forgot-password', passwordResetRequestLimiter, validate(forgotPasswordSchema), async (req, res, next) => {
+    try {
+        if (!isEmailDeliveryConfigured()) {
+            return res.status(503).json({ message: 'Email delivery is not configured. Please contact the administrator.' });
+        }
+        const { email } = req.validatedBody;
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.emailVerifiedAt || user.blockedAt) return res.json({ message: forgotPasswordMessage });
+
+        const reset = newPasswordResetCode(email);
+        const updated = await prisma.user.updateMany({
+            where: {
+                id: user.id,
+                OR: [
+                    { passwordResetRequestedAt: null },
+                    { passwordResetRequestedAt: { lt: new Date(Date.now() - 60 * 1000) } },
+                ],
+            },
+            data: {
+                passwordResetToken: reset.digest,
+                passwordResetExpiresAt: reset.expiresAt,
+                passwordResetRequestedAt: new Date(),
+                passwordResetAttempts: 0,
+            },
+        });
+        if (!updated.count) return res.json({ message: forgotPasswordMessage });
+
+        try {
+            await sendPasswordResetEmail({ email, code: reset.code });
+            await recordActivity(user, 'PASSWORD_RESET_REQUESTED', { subjectType: 'user', subjectId: user.id });
+        } catch (error) {
+            await prisma.user.updateMany({
+                where: { id: user.id, passwordResetToken: reset.digest },
+                data: { passwordResetToken: null, passwordResetExpiresAt: null, passwordResetRequestedAt: null },
+            });
+            console.error('[Password reset email failed]', { code: error?.code || 'UNKNOWN' });
+        }
+        return res.json({ message: forgotPasswordMessage });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post('/reset-password', passwordResetConfirmLimiter, validate(resetPasswordSchema), async (req, res, next) => {
+    try {
+        const { email, code, newPassword } = req.validatedBody;
+        const user = await prisma.user.findUnique({ where: { email } });
+        const digest = passwordResetDigest(email, code);
+        const savedDigest = user?.passwordResetToken || '0'.repeat(64);
+        const codeMatches = crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(savedDigest));
+        const eligible = user?.emailVerifiedAt && !user.blockedAt && user.passwordResetExpiresAt > new Date()
+            && user.passwordResetAttempts < 5;
+        if (!codeMatches || !eligible) {
+            if (user?.passwordResetToken && user.passwordResetExpiresAt > new Date() && user.passwordResetAttempts < 5) {
+                await prisma.user.updateMany({
+                    where: { id: user.id, passwordResetToken: user.passwordResetToken, passwordResetAttempts: { lt: 5 } },
+                    data: { passwordResetAttempts: { increment: 1 } },
+                });
+            }
+            return res.status(400).json({ message: 'The reset code is invalid, expired, or has been used. Request a new code if needed.' });
+        }
+
+        const updated = await prisma.user.updateMany({
+            where: {
+                id: user.id,
+                passwordResetToken: digest,
+                passwordResetExpiresAt: { gt: new Date() },
+                passwordResetAttempts: { lt: 5 },
+                blockedAt: null,
+                emailVerifiedAt: { not: null },
+            },
+            data: {
+                password: await bcrypt.hash(newPassword, 12),
+                passwordResetToken: null,
+                passwordResetExpiresAt: null,
+                passwordResetRequestedAt: null,
+                passwordResetAttempts: 0,
+                sessionVersion: { increment: 1 },
+                ...(user.authProvider === 'google' ? { authProvider: 'local,google' } : {}),
+            },
+        });
+        if (!updated.count) {
+            return res.status(400).json({ message: 'The reset code is invalid, expired, or has been used. Request a new code if needed.' });
+        }
+        await recordActivity(user, 'PASSWORD_RESET_COMPLETED', { subjectType: 'user', subjectId: user.id });
+        res.clearCookie('token', cookieOptions);
+        return res.json({ message: 'Password changed. Sign in with your new password.' });
+    } catch (error) {
+        next(error);
+    }
+});
+
 router.post('/login', sensitiveLimiter, validate(loginSchema), async (req, res, next) => {
     try {
         const { email, password } = req.validatedBody;
@@ -337,6 +488,7 @@ router.post('/login', sensitiveLimiter, validate(loginSchema), async (req, res, 
         }
         if (user.blockedAt) return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
         const token = issueSession(res, user);
+        await recordActivity(user, 'LOGIN_PASSWORD', { subjectType: 'user', subjectId: user.id });
         return res.json({ user: publicUser(user), token });
     } catch (error) {
         next(error);
@@ -357,6 +509,12 @@ router.post('/google', googleSignInLimiter, validate(googleSchema), async (req, 
 
         const email = payload.email.toLowerCase();
         const existing = await prisma.user.findFirst({ where: { OR: [{ googleSub: payload.sub }, { email }] } });
+        if (!existing) {
+            const application = await prisma.responderApplication.findUnique({ where: { email }, select: { status: true } });
+            if (application?.status === 'PENDING') {
+                return res.status(403).json({ message: 'Your responder application is waiting for administrator approval.' });
+            }
+        }
         if (existing?.blockedAt) {
             return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
         }
@@ -386,6 +544,7 @@ router.post('/google', googleSignInLimiter, validate(googleSchema), async (req, 
             });
 
         const token = issueSession(res, user);
+        await recordActivity(user, 'LOGIN_GOOGLE', { subjectType: 'user', subjectId: user.id });
         return res.json({ user: publicUser(user), token });
     } catch (error) {
         if (hasErrorCode(error, googleConnectionCodes) || error?.name === 'AbortError') {
@@ -417,7 +576,7 @@ router.get('/session', async (req, res) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await prisma.user.findUnique({ where: { id: decoded.id } });
-        if (!user?.emailVerifiedAt || user.blockedAt) return res.json({ user: null });
+        if (!user?.emailVerifiedAt || user.blockedAt || (decoded.sv ?? 0) !== user.sessionVersion) return res.json({ user: null });
         return res.json({ user: publicUser(user) });
     } catch {
         return res.json({ user: null });
@@ -435,12 +594,24 @@ router.patch('/profile', protect, validate(profileSchema), async (req, res, next
                 phoneNum: req.validatedBody.phone_num,
             },
         });
+        await recordActivity(user, 'PROFILE_UPDATED', { subjectType: 'user', subjectId: user.id });
         return res.json({ message: 'Profile updated successfully.', user: publicUser(user) });
     } catch (error) {
         next(error);
     }
 });
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const sessionToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies?.token;
+        if (sessionToken) {
+            const { id } = jwt.verify(sessionToken, process.env.JWT_SECRET);
+            const user = await prisma.user.findUnique({ where: { id } });
+            if (user) await recordActivity(user, 'LOGOUT', { subjectType: 'user', subjectId: user.id });
+        }
+    } catch {
+        // Expired sessions can still be cleared safely.
+    }
     res.clearCookie('token', cookieOptions);
     res.json({ message: 'Logged out successfully' });
 });

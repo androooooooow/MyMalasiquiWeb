@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../config/db.js';
 import { allowRoles, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { recordActivity } from '../services/activityLog.js';
 
 const router = express.Router();
 const units = ['HEALTH_AMBULANCE', 'PNP_POLICE', 'BFP_FIRE', 'MDRRMO'];
@@ -153,6 +154,9 @@ router.post('/conversations/:id/messages',
                 return created;
             });
             notifyConversation(conversation);
+            await recordActivity(req.user, 'CHAT_MESSAGE_SENT', {
+                subjectType: 'conversation', subjectId: conversation.id, details: conversation.responderUnit,
+            });
             return res.status(201).json({ message });
         } catch (error) {
             next(error);

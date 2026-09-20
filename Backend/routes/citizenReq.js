@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../config/db.js';
 import { allowRoles, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { recordActivity } from '../services/activityLog.js';
 
 const router = express.Router();
 const safeText = (minimum, maximum, message) => z.string().trim()
@@ -53,6 +54,9 @@ router.post('/', allowRoles('citizen'), validate(createEmergencySchema), async (
                 activeCitizenId: req.user.id,
             },
             include: emergencyInclude,
+        });
+        await recordActivity(req.user, 'EMERGENCY_CREATED', {
+            subjectType: 'emergency', subjectId: emergency.id, details: emergency.service,
         });
         return res.status(201).json({
             message: 'Emergency request sent to the responder queue.',

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminError, fetchAdminOverview } from '../../api/admin';
 import AppIcon from '../../components/AppIcon';
+import { auditActionLabel } from './auditLabels';
 
 const SERVICE_LABELS = {
   AMBULANCE: 'Ambulance', FIRE: 'Fire', POLICE: 'Police',
@@ -72,19 +73,21 @@ export default function OverviewPage({ user, onNavigate }) {
           <div className="rescue-card__body admin-overview-links">
             <p><strong>{counts?.blockedUsers ?? '—'}</strong> blocked accounts</p>
             <p><strong>{counts?.admins ?? '—'}</strong> administrators</p>
+            <p><strong>{counts?.pendingResponderApplications ?? '—'}</strong> responder applications waiting for approval</p>
             <button className="rescue-button rescue-button--ghost rescue-button--small" type="button" onClick={() => onNavigate('users')}>Manage users</button>
+            <button className="rescue-button rescue-button--ghost rescue-button--small" type="button" onClick={() => onNavigate('applications')}>Review responders</button>
           </div>
-          <header className="rescue-card__header"><h2>Recent admin actions</h2><button className="rescue-button rescue-button--ghost rescue-button--small" type="button" onClick={() => onNavigate('audit')}>View all</button></header>
+          <header className="rescue-card__header"><h2>Recent activity</h2><button className="rescue-button rescue-button--ghost rescue-button--small" type="button" onClick={() => onNavigate('audit')}>View all</button></header>
           {data?.recentAudit?.length ? (
             <ul className="rescue-list">
               {data.recentAudit.map((entry) => (
                 <li className="rescue-list__item" key={entry.id}>
                   <span className="rescue-list__icon"><AppIcon name="activity" /></span>
-                  <span className="rescue-list__copy"><strong>{entry.actor.name} {entry.action === 'USER_BLOCKED' ? 'blocked' : 'unblocked'} {entry.targetUser.name}</strong><small>{entry.reason || 'Account access restored'}</small></span>
+                  <span className="rescue-list__copy"><strong>{entry.actorName} · {auditActionLabel(entry.action)}</strong><small>{entry.actorRole}{entry.details ? ` · ${entry.details}` : ''}</small></span>
                 </li>
               ))}
             </ul>
-          ) : <div className="rescue-card__body"><p className="rescue-empty-note">No admin actions recorded yet.</p></div>}
+          ) : <div className="rescue-card__body"><p className="rescue-empty-note">No activity recorded yet.</p></div>}
         </article>
       </section>
     </>

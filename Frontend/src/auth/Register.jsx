@@ -67,7 +67,9 @@ export default function Register() {
     try {
       setIsSubmitting(true);
       const data = await register(details);
-      navigate(`/check-email?email=${encodeURIComponent(data.email)}`, { replace: true });
+      navigate(data.pendingApproval
+        ? `/responder-application?email=${encodeURIComponent(data.email)}`
+        : `/check-email?email=${encodeURIComponent(data.email)}`, { replace: true });
     } catch (requestError) {
       setError(getRequestError(requestError, 'We could not create your account. Please try again.'));
     } finally {
@@ -223,10 +225,12 @@ export default function Register() {
 
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting
-            ? 'Creating account…'
-            : `Create ${form.accountType === 'respondent' ? 'responder' : 'citizen'} account`}
+            ? form.accountType === 'respondent' ? 'Submitting application…' : 'Creating account…'
+            : form.accountType === 'respondent' ? 'Apply for responder access' : 'Create citizen account'}
         </button>
-        <p className="form-security-note">We’ll email you a 6-digit code. Your dashboard stays locked until you verify it.</p>
+        <p className="form-security-note">{form.accountType === 'respondent'
+          ? 'An administrator must approve your application first. After approval, we’ll email you a 6-digit code to activate your account.'
+          : 'We’ll email you a 6-digit code. Your dashboard stays locked until you verify it.'}</p>
       </form>
     </AuthLayout>
   );

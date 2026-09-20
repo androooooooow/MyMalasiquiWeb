@@ -20,6 +20,11 @@ model User {
   emailVerifiedAt        DateTime? @map("email_verified_at")
   emailVerificationToken String?   @unique @map("email_verification_token")
   verificationExpiresAt  DateTime? @map("verification_expires_at")
+  passwordResetToken     String?   @unique @map("password_reset_token")
+  passwordResetExpiresAt DateTime? @map("password_reset_expires_at")
+  passwordResetRequestedAt DateTime? @map("password_reset_requested_at")
+  passwordResetAttempts  Int       @default(0) @map("password_reset_attempts")
+  sessionVersion         Int       @default(0) @map("session_version")
   googleSub              String?   @unique @map("google_sub")
   authProvider           String    @default("local") @map("auth_provider")
   blockedAt              DateTime? @map("blocked_at")
@@ -32,6 +37,8 @@ model User {
   chatMessages           ChatMessage[] @relation("SentChatMessages")
   adminActions           AdminAuditLog[] @relation("AdminAuditActor")
   receivedAdminActions   AdminAuditLog[] @relation("AdminAuditTarget")
+  activityLogs           ActivityLog[]
+  reviewedResponderApplications ResponderApplication[] @relation("ResponderApplicationReviewer")
 
   @@map("users")
   @@index([role, responderUnit])
@@ -42,6 +49,34 @@ enum ResponderUnit {
   PNP_POLICE
   BFP_FIRE
   MDRRMO
+}
+
+enum ResponderApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ResponderApplication {
+  id              String                     @id @default(cuid())
+  name            String
+  address         String
+  phoneNum        String                     @map("phone_num")
+  email           String                     @unique
+  responderUnit   ResponderUnit              @map("responder_unit")
+  passwordHash    String?                    @map("password_hash")
+  status          ResponderApplicationStatus @default(PENDING)
+  reviewReason    String?                    @map("review_reason")
+  reviewedById    Int?                       @map("reviewed_by_id")
+  reviewedAt      DateTime?                  @map("reviewed_at")
+  emailSentAt     DateTime?                  @map("email_sent_at")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
+
+  reviewedBy      User?                      @relation("ResponderApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("responder_applications")
 }
 
 enum EmergencyService {
@@ -141,4 +176,25 @@ model AdminAuditLog {
   @@index([createdAt])
   @@index([targetUserId, createdAt])
   @@map("admin_audit_logs")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  actorId    Int?     @map("actor_id")
+  actorName  String   @map("actor_name")
+  actorEmail String   @map("actor_email")
+  actorRole  String   @map("actor_role")
+  action     String
+  subjectType String? @map("subject_type")
+  subjectId  String?  @map("subject_id")
+  details    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorRole, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("activity_logs")
 }

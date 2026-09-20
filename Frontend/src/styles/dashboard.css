@@ -151,6 +151,7 @@
   font-size: 0.87rem;
   font-weight: 600;
   text-align: left;
+  text-decoration: none;
   transition: 150ms ease;
 }
 
@@ -188,6 +189,7 @@
   color: #ffe6e4;
   background: rgba(217, 75, 69, 0.13);
   text-align: left;
+  text-decoration: none;
 }
 
 .rescue-sos:hover { background: rgba(217, 75, 69, 0.22); }
@@ -845,6 +847,8 @@
 .admin-table td small { margin-top: 0.15rem; color: var(--ink-600); }
 .admin-state { display: inline-block; padding: 0.35rem 0.55rem; border-radius: 99px; color: #087363; background: #e5f8f3; font-weight: 700; }
 .admin-state--blocked { color: #a32031; background: #fff0f1; }
+.admin-state--pending { color: #946200; background: #fff5d6; }
+.admin-application-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .admin-empty { padding: 1rem; }
 .admin-pagination { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.8rem 1rem; color: var(--ink-600); font-size: 0.7rem; }
 .admin-pagination div { display: flex; gap: 0.45rem; }

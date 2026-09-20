@@ -1,10 +1,10 @@
 export const NAV_ITEMS = [
-  { key: 'overview', label: 'Operations', icon: 'home' },
-  { key: 'incidents', label: 'Incidents', icon: 'alert' },
-  { key: 'dispatch', label: 'Dispatch map', icon: 'map' },
-  { key: 'teams', label: 'Response teams', icon: 'users' },
-  { key: 'messages', label: 'Communications', icon: 'chat' },
-  { key: 'profile', label: 'My profile', icon: 'user' },
+  { key: 'overview', path: 'operations', label: 'Operations', icon: 'home' },
+  { key: 'incidents', path: 'incidents', label: 'Incidents', icon: 'alert' },
+  { key: 'dispatch', path: 'dispatch-map', label: 'Dispatch map', icon: 'map' },
+  { key: 'teams', path: 'response-teams', label: 'Response teams', icon: 'users' },
+  { key: 'messages', path: 'communications', label: 'Communications', icon: 'chat' },
+  { key: 'profile', path: 'profile', label: 'My profile', icon: 'user' },
 ];
 
 export const SERVICE_LABELS = {
