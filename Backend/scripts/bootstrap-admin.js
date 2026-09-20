@@ -1,6 +1,7 @@
 import readline from 'node:readline/promises';
 import bcrypt from 'bcryptjs';
 import prisma from '../config/db.js';
+import { encryptUserContact } from '../services/privateFields.js';
 
 async function secretPrompt() {
     if (!process.stdin.isTTY || !process.stdin.setRawMode) {
@@ -61,8 +62,7 @@ async function main() {
         data: {
             name,
             email,
-            address: 'Malasiqui, Pangasinan',
-            phoneNum: '',
+            ...encryptUserContact({ address: 'Malasiqui, Pangasinan', phoneNum: '' }),
             role: 'admin',
             password: await bcrypt.hash(password, 12),
             emailVerifiedAt: new Date(),

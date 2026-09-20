@@ -8,6 +8,7 @@ import Register from './auth/Register';
 import { CheckEmail, VerifyEmail } from './auth/EmailVerification';
 import ForgotPassword from './auth/ForgotPassword';
 import ResponderApplicationPending from './auth/ResponderApplicationPending';
+import LegalPage from './pages/LegalPage';
 import { fetchCurrentUser } from './api/auth';
 
 const previewRole = import.meta.env.DEV
@@ -100,6 +101,8 @@ function App() {
           element={user ? <Navigate to="/" replace /> : <Register />}
         />
         <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
+        <Route path="/terms" element={<LegalPage type="terms" />} />
+        <Route path="/privacy" element={<LegalPage type="privacy" />} />
         <Route path="/responder-application" element={user ? <Navigate to="/" replace /> : <ResponderApplicationPending />} />
         <Route path="/check-email" element={user ? <Navigate to="/" replace /> : <CheckEmail onAuthenticated={setUser} />} />
         <Route path="/verify-email" element={user ? <Navigate to="/" replace /> : <VerifyEmail onAuthenticated={setUser} />} />

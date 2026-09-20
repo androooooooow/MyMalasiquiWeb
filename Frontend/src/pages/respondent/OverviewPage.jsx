@@ -22,7 +22,7 @@ export default function OverviewPage({ user, incidents, loading, busyId, onNavig
         )}
       />
 
-      <section className="rescue-grid rescue-grid--4">
+      <section className="rescue-grid rescue-grid--3">
         <article className="rescue-card rescue-stat">
           <div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--danger"><AppIcon name="alert" /></span><span className="rescue-stat__trend">Needs action</span></div>
           <strong>{pending}</strong><p>Waiting requests</p>
@@ -34,10 +34,6 @@ export default function OverviewPage({ user, incidents, loading, busyId, onNavig
         <article className="rescue-card rescue-stat">
           <div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--amber"><AppIcon name="clock" /></span><span className="rescue-stat__trend">Live</span></div>
           <strong>{incidents.length}</strong><p>Active incidents</p>
-        </article>
-        <article className="rescue-card rescue-stat">
-          <div className="rescue-stat__top"><span className="rescue-stat__icon"><AppIcon name="location" /></span><span className="rescue-stat__trend">GPS enabled</span></div>
-          <strong>Live</strong><p>Citizen locations</p>
         </article>
       </section>
 

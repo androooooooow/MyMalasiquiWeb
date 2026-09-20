@@ -5,6 +5,8 @@ import { allowRoles, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { isEmailDeliveryConfigured, sendResponderRejectionEmail, sendVerificationEmail } from '../services/email.js';
 import { newVerificationCode } from '../services/verificationCode.js';
+import { decryptUserContact, encryptUserContact } from '../services/privateFields.js';
+import { userRateLimit } from '../middleware/userRateLimit.js';
 
 const router = express.Router();
 const userSelect = {
@@ -99,7 +101,7 @@ function addPeriod(date, period, amount) {
     return next;
 }
 
-router.use(protect, allowRoles('admin'));
+router.use(protect, allowRoles('admin'), userRateLimit(120, 'Too many admin requests. Please wait briefly and try again.'));
 
 router.get('/overview', async (req, res, next) => {
     try {
@@ -141,15 +143,15 @@ router.get('/overview', async (req, res, next) => {
 
 router.get('/responder-applications', async (req, res, next) => {
     try {
-        const { page, status } = applicationQuerySchema.parse(req.query);
+        const { page: requestedPage, status } = applicationQuerySchema.parse(req.query);
         const where = { status };
-        const [applications, total] = await Promise.all([
-            prisma.responderApplication.findMany({
-                where, select: applicationSelect, orderBy: { createdAt: 'desc' },
-                skip: (page - 1) * 20, take: 20,
-            }),
-            prisma.responderApplication.count({ where }),
-        ]);
+        const pageSize = 10;
+        const total = await prisma.responderApplication.count({ where });
+        const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / pageSize)));
+        const applications = await prisma.responderApplication.findMany({
+            where, select: applicationSelect, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip: (page - 1) * pageSize, take: pageSize,
+        });
         const accounts = status === 'APPROVED' && applications.length
             ? await prisma.user.findMany({
                 where: { email: { in: applications.map((application) => application.email) } },
@@ -159,10 +161,10 @@ router.get('/responder-applications', async (req, res, next) => {
         const verifiedByEmail = new Map(accounts.map((account) => [account.email, account.emailVerifiedAt]));
         return res.json({
             applications: applications.map((application) => ({
-                ...application,
+                ...decryptUserContact(application),
                 accountVerifiedAt: verifiedByEmail.get(application.email) || null,
             })),
-            total, page, pageSize: 20,
+            total, page, pageSize,
         });
     } catch (error) {
         if (error instanceof z.ZodError) return res.status(400).json({ message: 'Invalid application filters.' });
@@ -190,7 +192,8 @@ router.post('/responder-applications/:id/approve', async (req, res, next) => {
             if (!claimed.count) return null;
             const created = await tx.user.create({
                 data: {
-                    name: application.name, address: application.address, phoneNum: application.phoneNum,
+                    name: application.name,
+                    ...encryptUserContact(decryptUserContact(application)),
                     email: application.email, role: 'respondent', responderUnit: application.responderUnit,
                     password: application.passwordHash, authProvider: 'local',
                 },
@@ -292,11 +295,14 @@ router.get('/users', async (req, res, next) => {
                 { email: { contains: query.search, mode: 'insensitive' } },
             ] } : {}),
         };
-        const [users, total] = await Promise.all([
-            prisma.user.findMany({ where, select: userSelect, orderBy: { createdAt: 'desc' }, skip: (query.page - 1) * 20, take: 20 }),
-            prisma.user.count({ where }),
-        ]);
-        return res.json({ users, total, page: query.page, pageSize: 20 });
+        const pageSize = 10;
+        const total = await prisma.user.count({ where });
+        const page = Math.min(query.page, Math.max(1, Math.ceil(total / pageSize)));
+        const users = await prisma.user.findMany({
+            where, select: userSelect, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            skip: (page - 1) * pageSize, take: pageSize,
+        });
+        return res.json({ users, total, page, pageSize });
     } catch (error) {
         if (error instanceof z.ZodError) return res.status(400).json({ message: 'Invalid user filters.' });
         next(error);
@@ -375,7 +381,7 @@ router.get('/analytics', async (req, res, next) => {
 
 router.get('/audit-log', async (req, res, next) => {
     try {
-        const { page, role, action, search } = auditQuerySchema.parse(req.query);
+        const { page: requestedPage, role, action, search } = auditQuerySchema.parse(req.query);
         const where = {
             ...(role !== 'all' ? { actorRole: role } : {}),
             ...(action !== 'all' ? { action } : {}),
@@ -384,21 +390,21 @@ router.get('/audit-log', async (req, res, next) => {
                 { actorEmail: { contains: search, mode: 'insensitive' } },
             ] } : {}),
         };
-        const [entries, total] = await Promise.all([
-            prisma.activityLog.findMany({
-                where,
-                take: 30,
-                skip: (page - 1) * 30,
-                orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-                select: {
-                    id: true, action: true, details: true, createdAt: true,
-                    actorName: true, actorEmail: true, actorRole: true,
-                    subjectType: true, subjectId: true,
-                },
-            }),
-            prisma.activityLog.count({ where }),
-        ]);
-        return res.json({ entries, total, page, pageSize: 30 });
+        const pageSize = 10;
+        const total = await prisma.activityLog.count({ where });
+        const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / pageSize)));
+        const entries = await prisma.activityLog.findMany({
+            where,
+            take: pageSize,
+            skip: (page - 1) * pageSize,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            select: {
+                id: true, action: true, details: true, createdAt: true,
+                actorName: true, actorEmail: true, actorRole: true,
+                subjectType: true, subjectId: true,
+            },
+        });
+        return res.json({ entries, total, page, pageSize });
     } catch (error) {
         if (error instanceof z.ZodError) return res.status(400).json({ message: 'Invalid audit log page.' });
         next(error);

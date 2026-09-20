@@ -223,6 +223,7 @@ export default function Register() {
           </label>
         </div>
 
+        <p className="form-security-note">Before creating an account, please read our <Link to="/terms">Terms of use</Link> and <Link to="/privacy">Privacy notice</Link>.</p>
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting
             ? form.accountType === 'respondent' ? 'Submitting application…' : 'Creating account…'

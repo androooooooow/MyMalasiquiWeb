@@ -55,6 +55,24 @@ test('admin can block and unblock a user with an audit trail', async () => {
         assert.equal(loginResponse.status, 200);
         const signIns = await (await request('/api/admin/audit-log?role=citizen&action=LOGIN_PASSWORD', adminToken)).json();
         assert.ok(signIns.entries.some((entry) => entry.actorEmail === citizen.email && entry.action === 'LOGIN_PASSWORD'));
+        await prisma.activityLog.createMany({ data: Array.from({ length: 11 }, (_, index) => ({
+            actorId: admin.id, actorName: admin.name, actorEmail: admin.email, actorRole: 'admin',
+            action: 'PAGINATION_TEST', subjectId: String(index),
+        })) });
+        const auditPageOne = await (await request(`/api/admin/audit-log?search=${encodeURIComponent(admin.email)}&action=PAGINATION_TEST&page=1`, adminToken)).json();
+        const auditPageTwo = await (await request(`/api/admin/audit-log?search=${encodeURIComponent(admin.email)}&action=PAGINATION_TEST&page=2`, adminToken)).json();
+        assert.equal(auditPageOne.entries.length, 10);
+        assert.equal(auditPageTwo.entries.length, 1);
+        assert.equal(auditPageTwo.page, 2);
+        assert.equal(new Set([...auditPageOne.entries, ...auditPageTwo.entries].map((entry) => entry.id)).size, 11);
+        const lastAuditPage = await (await request('/api/admin/audit-log?page=999', adminToken)).json();
+        assert.equal(lastAuditPage.pageSize, 10);
+        assert.ok(lastAuditPage.entries.length <= 10);
+        assert.equal(lastAuditPage.page, Math.max(1, Math.ceil(lastAuditPage.total / lastAuditPage.pageSize)));
+        const userPage = await (await request('/api/admin/users?page=999', adminToken)).json();
+        assert.equal(userPage.pageSize, 10);
+        assert.ok(userPage.users.length <= 10);
+        assert.equal(userPage.page, Math.max(1, Math.ceil(userPage.total / userPage.pageSize)));
         for (const period of ['day', 'week', 'month', 'year']) {
             const response = await request(`/api/admin/analytics?period=${period}`, adminToken);
             assert.equal(response.status, 200);

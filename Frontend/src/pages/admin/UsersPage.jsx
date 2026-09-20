@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminError, fetchAdminUsers, setUserBlocked } from '../../api/admin';
+import AdminPagination from './AdminPagination';
 
 const UNIT_NAMES = {
   HEALTH_AMBULANCE: 'Health / Ambulance', PNP_POLICE: 'PNP / Police',
@@ -32,8 +33,10 @@ export default function UsersPage({ currentUserId }) {
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setResult(null);
     fetchAdminUsers({ search, role, status, page })
-      .then((data) => { if (active) { setResult(data); setError(''); } })
+      .then((data) => { if (active) { setResult(data); setPage(data.page); setError(''); } })
       .catch((err) => { if (active) setError(adminError(err, 'Could not load users.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -84,7 +87,7 @@ export default function UsersPage({ currentUserId }) {
           {!loading && !result?.users?.length && <p className="rescue-empty-note admin-empty">No matching accounts.</p>}
           {loading && !result && <p className="rescue-empty-note admin-empty">Loading accounts…</p>}
         </div>
-        <div className="admin-pagination"><span>{result?.total ?? 0} account(s) · Page {page}</span><div><button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button type="button" disabled={!result || page * result.pageSize >= result.total} onClick={() => setPage(page + 1)}>Next</button></div></div>
+        <AdminPagination page={result?.page ?? page} pageSize={result?.pageSize ?? 10} total={result?.total ?? 0} loading={loading || !result} itemLabel="accounts" onPageChange={(next) => { setPage(next); setResult(null); }} />
       </section>
 
       {target && <div className="admin-modal-backdrop" role="presentation"><section className="admin-modal rescue-card" role="dialog" aria-modal="true" aria-labelledby="access-title"><h2 id="access-title">{target.blockedAt ? 'Unblock' : 'Block'} {target.name}?</h2><p>{target.blockedAt ? 'This account will be able to sign in and use the app again.' : 'This takes effect immediately, including for an existing session.'}</p><form onSubmit={saveAccess}>{!target.blockedAt && <label>Reason for blocking<textarea value={reason} onChange={(event) => setReason(event.target.value)} minLength={5} maxLength={250} required placeholder="Explain why access is being blocked" /></label>}<div className="admin-modal-actions"><button className="rescue-button rescue-button--ghost" type="button" disabled={busy} onClick={() => setTarget(null)}>Cancel</button><button className="rescue-button rescue-button--primary" type="submit" disabled={busy || (!target.blockedAt && reason.trim().length < 5)}>{busy ? 'Saving…' : target.blockedAt ? 'Unblock account' : 'Block account'}</button></div></form></section></div>}

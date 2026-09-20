@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import AppIcon from './AppIcon';
+import { ThemeToggle } from './ThemeProvider';
 import '../styles/dashboard.css';
 
 export default function DashboardShell({
@@ -55,8 +56,6 @@ export default function DashboardShell({
           </button>
         </div>
 
-        <div className="rescue-status"><span /> Operations online</div>
-
         <nav className="rescue-nav" aria-label="Dashboard navigation">
           <p className="rescue-nav__label">Workspace</p>
           <ul>
@@ -97,6 +96,10 @@ export default function DashboardShell({
           </button>
           {logoutError && <p className="rescue-sidebar__error" role="alert">{logoutError}</p>}
         </div>
+        <nav className="rescue-sidebar__legal" aria-label="Policies">
+          <Link to="/terms" onClick={() => setNavOpen(false)}>Terms</Link>
+          <Link to="/privacy" onClick={() => setNavOpen(false)}>Privacy</Link>
+        </nav>
       </aside>
 
       <button className="rescue-scrim" type="button" hidden={!navOpen} onClick={() => setNavOpen(false)} aria-label="Close menu" />
@@ -114,11 +117,7 @@ export default function DashboardShell({
           </div>
           <div className="rescue-topbar__right">
             <span className="rescue-date">{today}</span>
-            <button className="rescue-icon-button" type="button" aria-label="Notifications">
-              <AppIcon name="bell" />
-              <span className="rescue-notification-dot" />
-            </button>
-            <span className="rescue-topbar__avatar">{(user?.name || '?').charAt(0).toUpperCase()}</span>
+            <ThemeToggle />
           </div>
         </header>
 

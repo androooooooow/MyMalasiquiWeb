@@ -104,10 +104,18 @@ test('responder account is created only after admin approval and email verificat
         assert.ok(application.passwordHash.startsWith('$2'));
 
         const queue = await fetch(`${base}/api/admin/responder-applications`, { headers: { Authorization: `Bearer ${adminToken}` } });
-        assert.equal(queue.status, 200);
+        assert.equal(queue.status, 200, await queue.clone().text());
         assert.ok((await queue.json()).applications.some((entry) => entry.id === application.id));
+        const lastPageResponse = await fetch(`${base}/api/admin/responder-applications?page=999`, {
+            headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        assert.equal(lastPageResponse.status, 200);
+        const lastPage = await lastPageResponse.json();
+        assert.equal(lastPage.pageSize, 10);
+        assert.ok(lastPage.applications.length <= 10);
+        assert.equal(lastPage.page, Math.max(1, Math.ceil(lastPage.total / lastPage.pageSize)));
         const approved = await post(`/api/admin/responder-applications/${application.id}/approve`, {}, adminToken);
-        assert.equal(approved.status, 200);
+        assert.equal(approved.status, 200, await approved.clone().text());
         assert.equal((await approved.json()).emailSent, true);
         const created = await prisma.user.findUnique({ where: { email } });
         assert.equal(created.role, 'respondent');

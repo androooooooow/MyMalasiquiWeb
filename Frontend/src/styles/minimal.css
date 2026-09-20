@@ -1,0 +1,396 @@
+/* A quiet, consistent interface for every Rescue App workspace. */
+:root {
+  color: #202724;
+  background: #f6f7f4;
+}
+
+button, input, select, textarea { font: inherit; }
+button { transition: background-color 150ms ease, border-color 150ms ease; }
+:focus-visible { outline: 2px solid #227a6f; outline-offset: 2px; }
+
+/* Sign in, registration, verification, and recovery */
+.auth-page {
+  padding: 2rem 1rem;
+  background: #f6f7f4;
+}
+.auth-card, .auth-card--register {
+  display: block;
+  width: min(100%, 520px);
+  min-height: 0;
+  overflow: visible;
+  border: 1px solid #dce2dd;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(28, 45, 38, 0.045);
+}
+.auth-card--register { width: min(100%, 720px); }
+.auth-visual, .auth-card--register .auth-visual {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.3rem clamp(1.4rem, 5vw, 2.3rem);
+  border-bottom: 1px solid #e5e9e5;
+  color: #244c45;
+  background: #fff;
+}
+.auth-visual::before, .auth-visual::after { display: none; }
+.auth-brand { gap: 0.55rem; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.04em; white-space: nowrap; }
+.auth-brand__mark { width: 1.65rem; height: 1.65rem; }
+.auth-visual__place { color: #7a8980; font-size: 0.73rem; text-align: right; }
+.auth-panel {
+  display: block;
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+  background: #fff;
+  border-radius: 0 0 12px 12px;
+}
+.auth-form-container, .auth-card--register .auth-form-container { width: 100%; }
+.auth-eyebrow { color: #62796f; font-size: 0.68rem; letter-spacing: 0.1em; }
+.auth-form-container h1 { color: #202724; font-size: clamp(1.7rem, 4vw, 2.1rem); letter-spacing: -0.035em; line-height: 1.15; }
+.auth-description { margin-top: 0.6rem; color: #637169; font-size: 0.86rem; line-height: 1.55; }
+.auth-form { margin-top: 1.65rem; }
+.form-field, .account-type legend { color: #35453d; font-size: 0.78rem; }
+.auth-input, .auth-secondary {
+  border-color: #ccd6cf;
+  border-radius: 7px;
+  color: #202724;
+}
+.auth-input::placeholder { color: #929e96; }
+.auth-input:hover { border-color: #9dad9f; }
+.auth-input:focus { border-color: #227a6f; box-shadow: 0 0 0 3px rgba(34, 122, 111, 0.12); }
+.auth-submit { border-color: #245b51; border-radius: 7px; background: #245b51; box-shadow: none; font-size: 0.88rem; }
+.auth-submit:hover:not(:disabled) { background: #19473e; box-shadow: none; transform: none; }
+.auth-secondary { color: #245b51; }
+.auth-secondary:hover:not(:disabled) { border-color: #245b51; color: #19473e; background: #f5f8f5; }
+.auth-footer a, .auth-help-link a { color: #245b51; }
+.role-card { border-color: #d4ddd5; border-radius: 8px; color: #465a4c; }
+.role-card:hover { border-color: #8da99c; transform: none; }
+.role-option input:checked + .role-card { border-color: #245b51; color: #202724; background: #f2f7f4; box-shadow: none; }
+.role-icon { color: #245b51; background: #e9f1ec; }
+.verification-icon { background: #245b51; }
+.verification-icon--error { background: #b7463c; }
+.verification-status, .auth-notice { border-color: #d9e5dc; color: #315f50; background: #f2f7f4; }
+
+/* Citizen, responder, and administrator workspaces */
+.rescue-shell {
+  --teal-600: #245b51;
+  --teal-500: #347b6e;
+  --teal-100: #e9f1ec;
+  --coral-600: #b7463c;
+  --coral-100: #f9eae7;
+  --ink-900: #202724;
+  --ink-700: #35453d;
+  --ink-600: #65746a;
+  --ink-500: #77847b;
+  --ink-400: #8b9890;
+  --line: #dce2dd;
+  --canvas: #f6f7f4;
+  background: var(--canvas);
+}
+.rescue-sidebar {
+  width: 246px;
+  flex-basis: 246px;
+  padding: 1.35rem 0.85rem 1rem;
+  border-right: 1px solid var(--line);
+  color: var(--ink-900);
+  background: #fff;
+}
+.rescue-brand { padding: 0.3rem 0.65rem 1.65rem; }
+.rescue-brand__mark { width: 2.25rem; height: 2.25rem; border: 1px solid #d6e3da; border-radius: 9px; color: #245b51; background: #f2f7f4; }
+.rescue-brand__copy strong { color: #202724; font-size: 0.82rem; letter-spacing: 0.035em; }
+.rescue-brand__copy small { color: #718077; font-size: 0.65rem; }
+.rescue-nav__label { margin: 0 0.65rem 0.65rem; color: #7c8980; font-size: 0.62rem; letter-spacing: 0.09em; }
+.rescue-nav ul { gap: 0.16rem; }
+.rescue-nav__item { min-height: 2.7rem; gap: 0.68rem; border-radius: 7px; color: #586b5f; font-size: 0.81rem; font-weight: 550; }
+.rescue-nav__item:hover { color: #202724; background: #f3f6f2; }
+.rescue-nav__item--active { color: #245b51; background: #eaf2ec; box-shadow: none; font-weight: 700; }
+.rescue-nav__badge { background: #b7463c; }
+.rescue-sos { border-color: #edccc7; border-radius: 8px; color: #983b33; background: #fff8f6; }
+.rescue-sos:hover { background: #f9eeea; }
+.rescue-sos__icon { width: 2rem; height: 2rem; border-radius: 6px; background: #b7463c; }
+.rescue-sos small { color: #9a706a; }
+.rescue-sidebar__footer { border-color: #e5e9e5; }
+.rescue-user__avatar { color: #245b51; background: #e8f0e9; }
+.rescue-user__copy strong { color: #202724; }
+.rescue-user__copy small { color: #76837a; }
+.rescue-logout { color: #64766a; }
+.rescue-logout:hover { color: #202724; background: #f3f6f2; }
+.rescue-sidebar__error { color: #a63b33; }
+.rescue-topbar { min-height: 68px; padding: 0.75rem clamp(1.25rem, 3vw, 2.3rem); background: #fff; backdrop-filter: none; }
+.rescue-breadcrumb { color: #7c8a80; font-size: 0.61rem; letter-spacing: 0.06em; }
+.rescue-topbar h2 { font-size: 0.91rem; font-weight: 700; }
+.rescue-main { width: min(100%, 1380px); padding: clamp(1.3rem, 3vw, 2.25rem); }
+.rescue-page-head { margin-bottom: 1.45rem; }
+.rescue-eyebrow { color: #667e70; font-size: 0.66rem; letter-spacing: 0.09em; }
+.rescue-page-title { font-size: clamp(1.65rem, 3vw, 2.15rem); font-weight: 720; letter-spacing: -0.035em; line-height: 1.17; }
+.rescue-page-lede { max-width: 660px; font-size: 0.86rem; line-height: 1.55; }
+.rescue-card { border-radius: 10px; box-shadow: none; }
+.rescue-card__header { padding: 1rem 1.15rem; }
+.rescue-card__header h2, .rescue-card__header h3 { font-size: 0.87rem; }
+.rescue-button { border-radius: 7px; font-size: 0.78rem; box-shadow: none; }
+.rescue-button--primary, .rescue-button--danger { box-shadow: none; }
+.rescue-button--primary:hover { background: #19473e; }
+.rescue-button--ghost { color: #33483b; }
+.rescue-button--ghost:hover { border-color: #a6b6a9; background: #f7faf7; }
+.rescue-stat { padding: 1.15rem 1.2rem; }
+.rescue-stat__icon, .rescue-list__icon, .citizen-action__icon { border-radius: 7px; }
+.rescue-stat__trend { color: #77877a; font-weight: 650; }
+.rescue-stat strong { font-size: 1.65rem; font-weight: 700; }
+.rescue-status-pill { border-radius: 5px; font-weight: 700; }
+.rescue-status-pill::before { display: none; }
+.rescue-empty-note { border-style: solid; background: #fafbf9; }
+.rescue-list__item { padding: 0.95rem 1.15rem; }
+.rescue-list__copy strong, .emergency-contact__copy strong, .rescue-chat__thread strong { font-size: 0.82rem; }
+.rescue-list__copy small, .rescue-list__meta, .emergency-contact__copy small,
+.emergency-field > span, .emergency-field input, .emergency-field select, .emergency-field textarea,
+.rescue-chat__thread span, .rescue-chat__bubble, .rescue-chat__composer input,
+.admin-table, .admin-filters label, .profile-row dt, .profile-row dd { font-size: 0.78rem; }
+.rescue-stat p, .knowledge-card p, .rescue-empty-note, .emergency-banner p { font-size: 0.78rem; }
+.citizen-overview { grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr); }
+.citizen-hero { min-height: 0; padding: clamp(1.35rem, 3vw, 2rem); color: #202724; background: #fff; }
+.citizen-hero::after { display: none; }
+.citizen-hero__badge { padding: 0; border: 0; border-radius: 0; color: #245b51; background: transparent; }
+.citizen-hero h1 { max-width: 520px; font-size: clamp(1.45rem, 3vw, 2rem); line-height: 1.2; }
+.citizen-hero p { color: #65746a; font-size: 0.83rem; }
+.citizen-hero .rescue-button--danger { background: #b7463c; }
+.citizen-hero .rescue-button--ghost { border-color: var(--line); color: #33483b; background: #fff; }
+.citizen-readiness { display: block; padding: 1.25rem; }
+.citizen-readiness p { margin: 0.65rem 0 1rem; text-align: left; font-size: 0.77rem; }
+.citizen-details { margin: 0 0 1rem; }
+.citizen-details div { display: grid; gap: 0.2rem; padding: 0.68rem 0; border-top: 1px solid #edf0eb; }
+.citizen-details dt { color: #77847b; font-size: 0.69rem; }
+.citizen-details dd { margin: 0; color: #202724; font-size: 0.79rem; font-weight: 650; overflow-wrap: anywhere; }
+.citizen-action { min-height: 126px; border-radius: 10px; }
+.citizen-action:hover { border-color: #9caf9f; box-shadow: none; transform: none; }
+.citizen-home-note { margin: 1.25rem 0 0; color: #718077; font-size: 0.75rem; line-height: 1.5; }
+.emergency-banner, .emergency-service, .emergency-contact { border-radius: 10px; background-image: none; }
+.emergency-service:hover { box-shadow: none; transform: none; }
+.emergency-location-map, .emergency-map-waiting, .dispatch-map { background: #eef2ee; }
+.emergency-field input, .emergency-field select, .emergency-field textarea,
+.dispatch-selector select, .admin-filters input, .admin-filters select,
+.admin-modal textarea, .rescue-chat__search input, .rescue-chat__composer input { border-radius: 7px; }
+.knowledge-card__accent { height: 2px; background: #829d8b; }
+.profile-summary__avatar { border-radius: 50%; color: #245b51; background: #e8f0e9; }
+.rescue-chat__messages { background: #fafbf9; }
+.rescue-chat__thread--active { background: #eaf2ec; }
+.admin-table th { background: #f7f9f6; }
+.admin-table th { font-size: 0.68rem; }
+.admin-chart__track { background: #eef2ec; }
+.admin-analytics__rows span { background: #f4f7f3; }
+
+.auth-visual__end { display: flex; align-items: center; gap: 1rem; }
+.auth-legal-links { display: flex; justify-content: center; gap: 1.3rem; padding: 0.85rem 1rem 1.15rem; border-radius: 0 0 12px 12px; color: #65746a; background: #fff; font-size: 0.75rem; }
+.auth-card .auth-panel { border-radius: 0; }
+.form-security-note a { color: #245b51; font-weight: 650; }
+.auth-legal-links a { color: #526b59; text-decoration: none; }
+.auth-legal-links a:hover { text-decoration: underline; }
+.rescue-sidebar__legal { display: flex; gap: 1rem; padding: 0.7rem 0.7rem 0; font-size: 0.68rem; }
+.rescue-sidebar__legal a { color: #718077; text-decoration: none; }
+.rescue-sidebar__legal a:hover { text-decoration: underline; }
+.theme-toggle {
+  display: inline-flex;
+  min-width: 5.25rem;
+  min-height: 2.2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #dce2dd;
+  border-radius: 7px;
+  color: #35483d;
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.theme-toggle:hover { border-color: #93ad9b; background: #f5f8f4; }
+
+/* Dark theme follows the same hierarchy instead of simply inverting colors. */
+html[data-theme='dark'] { color-scheme: dark; background: #111815; }
+html[data-theme='dark'] body { background: #111815; }
+html[data-theme='dark'] .app-loading { color: #c3d0c6; background: #111815; }
+html[data-theme='dark'] .auth-page { background: #111815; }
+html[data-theme='dark'] .auth-card { border-color: #34443b; background: #1a241e; box-shadow: none; }
+html[data-theme='dark'] .auth-visual,
+html[data-theme='dark'] .auth-panel { border-color: #34443b; color: #e7eee7; background: #1a241e; }
+html[data-theme='dark'] .auth-brand { color: #b5d9bf; }
+html[data-theme='dark'] .auth-legal-links { border-color: #34443b; background: #1a241e; }
+html[data-theme='dark'] .form-security-note a { color: #a9d7b1; }
+html[data-theme='dark'] .auth-legal-links a, html[data-theme='dark'] .rescue-sidebar__legal a { color: #b0c0b2; }
+html[data-theme='dark'] .auth-visual__place,
+html[data-theme='dark'] .auth-description,
+html[data-theme='dark'] .auth-footer,
+html[data-theme='dark'] .form-security-note,
+html[data-theme='dark'] .auth-config-note,
+html[data-theme='dark'] .role-note,
+html[data-theme='dark'] .verification-card { color: #a6b7a9; }
+html[data-theme='dark'] .auth-eyebrow { color: #a5c8ac; }
+html[data-theme='dark'] .auth-form-container h1,
+html[data-theme='dark'] .form-field,
+html[data-theme='dark'] .account-type legend,
+html[data-theme='dark'] .role-card strong { color: #eef3ec; }
+html[data-theme='dark'] .auth-input,
+html[data-theme='dark'] .auth-secondary,
+html[data-theme='dark'] .role-card { border-color: #45564a; color: #edf2ec; background: #202e25; }
+html[data-theme='dark'] .auth-input::placeholder { color: #89998c; }
+html[data-theme='dark'] .auth-input:hover { border-color: #718d79; }
+html[data-theme='dark'] .auth-input:focus { border-color: #83b88e; box-shadow: 0 0 0 3px rgba(131, 184, 142, 0.16); }
+html[data-theme='dark'] .auth-secondary:hover:not(:disabled),
+html[data-theme='dark'] .role-card:hover { border-color: #85aa8e; color: #fff; background: #293b2e; }
+html[data-theme='dark'] .role-option input:checked + .role-card { border-color: #89ba93; color: #fff; background: #294433; }
+html[data-theme='dark'] .role-card small { color: #adbeb0; }
+html[data-theme='dark'] .role-icon,
+html[data-theme='dark'] .verification-status,
+html[data-theme='dark'] .auth-notice { border-color: #41644b; color: #b8dfbf; background: #263c2c; }
+html[data-theme='dark'] .auth-footer a,
+html[data-theme='dark'] .auth-help-link a { color: #a9d7b1; }
+html[data-theme='dark'] .auth-divider { color: #a3b4a6; }
+html[data-theme='dark'] .auth-divider::before,
+html[data-theme='dark'] .auth-divider::after { background: #3c4a40; }
+html[data-theme='dark'] .auth-alert { border-color: #854c4a; color: #ffd2cf; background: #382322; }
+html[data-theme='dark'] .password-toggle { color: #a8baac; }
+html[data-theme='dark'] .password-toggle:hover,
+html[data-theme='dark'] .password-toggle:focus-visible { color: #d4e6d6; background: #304035; }
+html[data-theme='dark'] .theme-toggle { border-color: #45564a; color: #dceade; background: #26352b; }
+html[data-theme='dark'] .theme-toggle:hover { border-color: #779a80; background: #304435; }
+
+html[data-theme='dark'] .rescue-shell {
+  --teal-600: #86c59b;
+  --teal-500: #6fab80;
+  --teal-100: #294333;
+  --coral-600: #f18a7d;
+  --coral-100: #442c2b;
+  --ink-900: #edf2ec;
+  --ink-700: #d5dfd5;
+  --ink-600: #b0c0b2;
+  --ink-500: #9dac9f;
+  --ink-400: #92a294;
+  --line: #35443a;
+  --surface: #1a241e;
+  --canvas: #111815;
+}
+html[data-theme='dark'] .rescue-sidebar,
+html[data-theme='dark'] .rescue-topbar { border-color: #35443a; color: #edf2ec; background: #1a241e; }
+html[data-theme='dark'] .rescue-brand__mark,
+html[data-theme='dark'] .rescue-user__avatar { border-color: #415e48; color: #b6dfbf; background: #2a4432; }
+html[data-theme='dark'] .rescue-brand__copy strong,
+html[data-theme='dark'] .rescue-user__copy strong { color: #edf2ec; }
+html[data-theme='dark'] .rescue-brand__copy small,
+html[data-theme='dark'] .rescue-user__copy small,
+html[data-theme='dark'] .rescue-nav__label,
+html[data-theme='dark'] .rescue-breadcrumb,
+html[data-theme='dark'] .rescue-date { color: #a4b5a6; }
+html[data-theme='dark'] .rescue-nav__item { color: #c4d1c4; }
+html[data-theme='dark'] .rescue-nav__item:hover,
+html[data-theme='dark'] .rescue-logout:hover { color: #fff; background: #2a3a2e; }
+html[data-theme='dark'] .rescue-nav__item--active { color: #c4ead0; background: #2a4533; }
+html[data-theme='dark'] .rescue-sidebar__footer { border-color: #35443a; }
+html[data-theme='dark'] .rescue-logout,
+html[data-theme='dark'] .rescue-sidebar__close { color: #bbcbbc; }
+html[data-theme='dark'] .rescue-sos { border-color: #744440; color: #ffd5cf; background: #392624; }
+html[data-theme='dark'] .rescue-sos small { color: #dfa9a3; }
+html[data-theme='dark'] .rescue-menu { border-color: #45564a; color: #d9e5d8; background: #26352b; }
+html[data-theme='dark'] .rescue-card,
+html[data-theme='dark'] .citizen-action,
+html[data-theme='dark'] .emergency-service,
+html[data-theme='dark'] .emergency-contact,
+html[data-theme='dark'] .admin-modal { border-color: #35443a; color: #edf2ec; background: #1a241e; }
+html[data-theme='dark'] .rescue-card__header,
+html[data-theme='dark'] .rescue-list__item,
+html[data-theme='dark'] .admin-table th,
+html[data-theme='dark'] .admin-table td,
+html[data-theme='dark'] .profile-row,
+html[data-theme='dark'] .rescue-chat__header,
+html[data-theme='dark'] .rescue-chat__composer,
+html[data-theme='dark'] .rescue-chat__search { border-color: #35443a; }
+html[data-theme='dark'] .rescue-button--primary { color: #102018; background: #9ed2a9; }
+html[data-theme='dark'] .rescue-button--primary:hover { background: #b4e0bc; }
+html[data-theme='dark'] .rescue-button--danger,
+html[data-theme='dark'] .citizen-hero .rescue-button--danger { color: #fff; background: #b7463c; }
+html[data-theme='dark'] .rescue-button--ghost,
+html[data-theme='dark'] .citizen-hero .rescue-button--ghost,
+html[data-theme='dark'] .admin-pagination button,
+html[data-theme='dark'] .admin-periods button { border-color: #45564a; color: #d9e6d9; background: #202e25; }
+html[data-theme='dark'] .rescue-button--ghost:hover,
+html[data-theme='dark'] .citizen-hero .rescue-button--ghost:hover { border-color: #73967b; background: #2b3c30; }
+html[data-theme='dark'] .citizen-hero,
+html[data-theme='dark'] .citizen-hero h1,
+html[data-theme='dark'] .citizen-details dd { color: #edf2ec; background: #1a241e; }
+html[data-theme='dark'] .citizen-hero p,
+html[data-theme='dark'] .citizen-readiness p,
+html[data-theme='dark'] .citizen-action small,
+html[data-theme='dark'] .citizen-home-note,
+html[data-theme='dark'] .citizen-details dt { color: #b0c0b2; }
+html[data-theme='dark'] .citizen-details div { border-color: #35443a; }
+html[data-theme='dark'] .citizen-action:hover { border-color: #719879; }
+html[data-theme='dark'] .rescue-empty-note,
+html[data-theme='dark'] .emergency-selected-service,
+html[data-theme='dark'] .emergency-request-code,
+html[data-theme='dark'] .profile-protected-fields,
+html[data-theme='dark'] .responder-team-assignment { border-color: #3d5542; color: #c7d7c9; background: #243329; }
+html[data-theme='dark'] .emergency-banner,
+html[data-theme='dark'] .emergency-tracker__notice { border-color: #754943; color: #f2d0ca; background: #332322; }
+html[data-theme='dark'] .emergency-banner p,
+html[data-theme='dark'] .emergency-tracker__notice small { color: #dbb4ad; }
+html[data-theme='dark'] .emergency-location-map,
+html[data-theme='dark'] .emergency-map-waiting,
+html[data-theme='dark'] .dispatch-map { background: #26342b; }
+html[data-theme='dark'] .emergency-step strong,
+html[data-theme='dark'] .emergency-step > span { background: #111815; }
+html[data-theme='dark'] .emergency-step--active > span { background: #b7463c; }
+html[data-theme='dark'] .emergency-step--complete > span { background: #46855a; }
+html[data-theme='dark'] .emergency-field input,
+html[data-theme='dark'] .emergency-field select,
+html[data-theme='dark'] .emergency-field textarea,
+html[data-theme='dark'] .dispatch-selector select,
+html[data-theme='dark'] .admin-filters input,
+html[data-theme='dark'] .admin-filters select,
+html[data-theme='dark'] .admin-modal textarea,
+html[data-theme='dark'] .rescue-chat__search input,
+html[data-theme='dark'] .rescue-chat__composer input { border-color: #45564a; color: #edf2ec; background: #202e25; }
+html[data-theme='dark'] .rescue-chat__messages,
+html[data-theme='dark'] .admin-table th,
+html[data-theme='dark'] .admin-chart__track { background: #202e25; }
+html[data-theme='dark'] .rescue-chat__thread--active,
+html[data-theme='dark'] .admin-analytics__rows span { background: #294333; }
+html[data-theme='dark'] .rescue-chat__bubble--them { border-color: #45564a; background: #26352b; }
+html[data-theme='dark'] .rescue-chat__bubble--me { color: #102018; background: #9ed2a9; }
+html[data-theme='dark'] .admin-filters label,
+html[data-theme='dark'] .admin-modal label { color: #dbe7da; }
+html[data-theme='dark'] .admin-periods .admin-periods__active { color: #102018; background: #9ed2a9; }
+html[data-theme='dark'] .admin-state { color: #b6e8c0; background: #2b4834; }
+html[data-theme='dark'] .admin-state--blocked { color: #ffc8c1; background: #4a2b2b; }
+html[data-theme='dark'] .admin-state--pending { color: #f3d29b; background: #493b25; }
+html[data-theme='dark'] .emergency-timeline__item > span { background: #1a241e; }
+html[data-theme='dark'] .emergency-timeline__item--complete > span { background: #46855a; }
+html[data-theme='dark'] .rescue-status-pill { color: #bbe0c0; background: #294333; }
+html[data-theme='dark'] .rescue-status-pill--danger { color: #ffd0c9; background: #4a2b2b; }
+html[data-theme='dark'] .rescue-status-pill--amber { color: #f3d29b; background: #493b25; }
+html[data-theme='dark'] .rescue-status-pill--neutral { color: #d2ded3; background: #344138; }
+.admin-pagination div { flex-wrap: wrap; }
+.admin-pagination button[aria-current='page'] { border-color: #0d7a70; color: #fff; background: #0d7a70; opacity: 1; }
+html[data-theme='dark'] .admin-pagination button[aria-current='page'] { border-color: #9ed2a9; color: #102018; background: #9ed2a9; opacity: 1; }
+
+@media (max-width: 900px) {
+  .rescue-sidebar { box-shadow: 12px 0 32px rgba(26, 44, 33, 0.12); }
+  .rescue-sidebar__close { color: #41594a; }
+  .citizen-overview { grid-template-columns: 1fr; }
+  .citizen-readiness { display: block; }
+}
+@media (max-width: 680px) {
+  .auth-page { display: block; min-height: 100dvh; padding: 0; background: #fff; }
+  .auth-card, .auth-card--register { min-height: 100dvh; width: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  .auth-visual, .auth-card--register .auth-visual { padding: 1.15rem 1.25rem; }
+  .auth-visual__place { display: none; }
+  .auth-panel { padding: 2rem 1.25rem 2.5rem; }
+  .rescue-main { padding: 1.1rem; }
+  .rescue-page-title { font-size: 1.7rem; }
+  .citizen-hero { min-height: 0; }
+  .citizen-hero__actions { align-items: stretch; flex-direction: column; }
+  .rescue-chat__threads { max-width: 100%; }
+  html[data-theme='dark'] .auth-page { background: #1a241e; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

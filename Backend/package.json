@@ -10,6 +10,9 @@
     "db:migrate": "node scripts/prisma.js migrate deploy",
     "db:dev": "node scripts/prisma.js migrate dev",
     "admin:bootstrap": "node scripts/bootstrap-admin.js",
+    "db:encrypt-fields": "node scripts/encrypt-existing-fields.js",
+    "test:security": "node --test tests/security.test.js",
+    "test:encrypted-flows": "node --test tests/encrypted-flows.integration.test.js",
     "test:admin": "node --test tests/admin.integration.test.js",
     "test:password-reset": "node --test tests/password-reset.integration.test.js",
     "test:responder-approval": "node --test tests/responder-approval.integration.test.js"

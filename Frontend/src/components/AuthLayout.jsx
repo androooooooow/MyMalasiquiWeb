@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 function RescueMark({ className = '' }) {
   return (
     <svg
@@ -36,24 +38,13 @@ export default function AuthLayout({
   return (
     <main className="auth-page">
       <div className={`auth-card${isRegister ? ' auth-card--register' : ''}`}>
-        <aside className="auth-visual" aria-label="RESCUE APP">
+        <header className="auth-visual">
           <div className="auth-brand">
             <RescueMark className="auth-brand__mark" />
             <span>RESCUE APP</span>
           </div>
-
-          <div className="auth-visual__art" aria-hidden="true">
-            <div className="rescue-orb">
-              <div className="rescue-orb__ring" />
-              <RescueMark className="rescue-orb__mark" />
-            </div>
-          </div>
-
-          <div className="auth-visual__copy">
-            <p className="auth-visual__eyebrow">Malasiqui response network</p>
-            <p>Preparedness, communication, and response tools in one secure place.</p>
-          </div>
-        </aside>
+          <span className="auth-visual__place">Malasiqui response network</span>
+        </header>
 
         <section className="auth-panel">
           <div className="auth-form-container">
@@ -64,6 +55,10 @@ export default function AuthLayout({
             {footer && <div className="auth-footer">{footer}</div>}
           </div>
         </section>
+        <nav className="auth-legal-links" aria-label="Policies">
+          <Link to="/terms">Terms of use</Link>
+          <Link to="/privacy">Privacy notice</Link>
+        </nav>
       </div>
     </main>
   );

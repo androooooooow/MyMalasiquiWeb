@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import prisma from "../config/db.js";
+import { decryptUserContact } from '../services/privateFields.js';
 
 export const protect = async (req, res, next) => {
     try{
@@ -19,7 +20,7 @@ export const protect = async (req, res, next) => {
             return res.status(401).json({message: "Not authorized, no token"});
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
 
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
@@ -33,11 +34,12 @@ export const protect = async (req, res, next) => {
             return res.status(403).json({ message: 'This account has been blocked. Contact the administrator.' });
         }
 
+        const contact = decryptUserContact(user);
         req.user = {
             id: user.id,
             name: user.name,
-            address: user.address,
-            phone_num: user.phoneNum,
+            address: contact.address,
+            phone_num: contact.phoneNum,
             email: user.email,
             role: user.role,
             responder_unit: user.responderUnit,

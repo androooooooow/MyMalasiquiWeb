@@ -1,0 +1,42 @@
+{
+  "info": {
+    "name": "RESCUE APP security checks",
+    "description": "Non-destructive checks for validation and authorization. Use a local or staging backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" }
+  ],
+  "item": [
+    {
+      "name": "Protected admin endpoint rejects anonymous users",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/overview" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Authentication required', () => pm.expect(pm.response.code).to.eql(401));"] } }]
+    },
+    {
+      "name": "Protected citizen endpoint rejects anonymous users",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/emergencies/active" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Authentication required', () => pm.expect(pm.response.code).to.eql(401));"] } }]
+    },
+    {
+      "name": "Registration rejects unexpected role fields",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"Security Test\",\"email\":\"invalid@example.invalid\",\"password\":\"TestPassword123\",\"role\":\"admin\"}" },
+        "url": "{{baseUrl}}/api/auth/register"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Administrator self-registration rejected', () => pm.expect(pm.response.code).to.eql(400));"] } }]
+    },
+    {
+      "name": "Invalid JSON is handled without stack traces",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{invalid" },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Malformed JSON rejected', () => pm.expect(pm.response.code).to.eql(400));", "pm.test('No stack trace exposed', () => pm.expect(pm.response.text()).not.to.include('at Function'));" ] } }]
+    }
+  ]
+}

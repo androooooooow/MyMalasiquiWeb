@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: RESCUE APP unauthenticated security-scan surface
+  version: 1.0.0
+  description: Run only against a disposable development or staging database.
+servers:
+  - url: http://host.docker.internal:3000
+paths:
+  /api/auth/session:
+    get:
+      responses:
+        '200':
+          description: Anonymous or authenticated session
+  /api/auth/me:
+    get:
+      responses:
+        '401':
+          description: Authentication required
+  /api/admin/overview:
+    get:
+      responses:
+        '401':
+          description: Authentication required
+  /api/emergencies/active:
+    get:
+      responses:
+        '401':
+          description: Authentication required
+  /api/chats/conversations:
+    get:
+      responses:
+        '401':
+          description: Authentication required

@@ -4,6 +4,8 @@ import prisma from '../config/db.js';
 import { allowRoles, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { recordActivity } from '../services/activityLog.js';
+import { decryptEmergencyContact, encryptPrivate } from '../services/privateFields.js';
+import { userRateLimit } from '../middleware/userRateLimit.js';
 
 const router = express.Router();
 const safeText = (minimum, maximum, message) => z.string().trim()
@@ -30,7 +32,7 @@ const emergencyInclude = {
     assignedResponder: { select: { id: true, name: true, phoneNum: true, responderUnit: true } },
 };
 
-router.use(protect);
+router.use(protect, userRateLimit(60, 'Too many emergency requests. Please wait briefly and try again.'));
 
 router.post('/', allowRoles('citizen'), validate(createEmergencySchema), async (req, res, next) => {
     try {
@@ -48,8 +50,9 @@ router.post('/', allowRoles('citizen'), validate(createEmergencySchema), async (
         const emergency = await prisma.emergencyRequest.create({
             data: {
                 ...details,
-                landmark: landmark || null,
-                callbackPhone: callbackPhone || req.user.phone_num || null,
+                description: encryptPrivate(details.description, 'incident'),
+                landmark: encryptPrivate(landmark || null, 'incident'),
+                callbackPhone: encryptPrivate(callbackPhone || req.user.phone_num || null, 'phone'),
                 citizenId: req.user.id,
                 activeCitizenId: req.user.id,
             },
@@ -60,7 +63,7 @@ router.post('/', allowRoles('citizen'), validate(createEmergencySchema), async (
         });
         return res.status(201).json({
             message: 'Emergency request sent to the responder queue.',
-            emergency,
+            emergency: decryptEmergencyContact(emergency),
         });
     } catch (error) {
         if (error?.code === 'P2002' && error?.meta?.target?.includes?.('active_citizen_id')) {
@@ -77,7 +80,7 @@ router.get('/active', allowRoles('citizen'), async (req, res, next) => {
             include: emergencyInclude,
             orderBy: { createdAt: 'desc' },
         });
-        return res.json({ emergency });
+        return res.json({ emergency: decryptEmergencyContact(emergency) });
     } catch (error) {
         next(error);
     }
@@ -91,7 +94,7 @@ router.get('/mine', allowRoles('citizen'), async (req, res, next) => {
             orderBy: { createdAt: 'desc' },
             take: 50,
         });
-        return res.json({ emergencies });
+        return res.json({ emergencies: emergencies.map(decryptEmergencyContact) });
     } catch (error) {
         next(error);
     }

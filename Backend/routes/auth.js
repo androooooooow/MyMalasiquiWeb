@@ -13,6 +13,7 @@ import { EmailDeliveryError, isEmailDeliveryConfigured, sendPasswordResetEmail, 
 import { trustedCertificates } from '../config/trustedCertificates.js';
 import { recordActivity } from '../services/activityLog.js';
 import { newVerificationCode, verificationDigest } from '../services/verificationCode.js';
+import { decryptUserContact, encryptUserContact } from '../services/privateFields.js';
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -142,11 +143,12 @@ function emailDeliveryResponse(error, res) {
 }
 
 function publicUser(user) {
+    const contact = decryptUserContact(user);
     return {
         id: user.id,
         name: user.name,
-        address: user.address,
-        phone_num: user.phoneNum,
+        address: contact.address,
+        phone_num: contact.phoneNum,
         email: user.email,
         role: user.role,
         responder_unit: user.responderUnit,
@@ -270,7 +272,7 @@ router.post('/register', sensitiveLimiter, validate(registerSchema), async (req,
                 return res.status(409).json({ message: 'Your responder application was approved. Check your email for the verification code.' });
             }
             const applicationData = {
-                name, address, phoneNum: phone_num, responderUnit: responder_unit,
+                name, ...encryptUserContact({ address, phoneNum: phone_num }), responderUnit: responder_unit,
                 passwordHash: await bcrypt.hash(password, 12), status: 'PENDING',
                 reviewReason: null, reviewedAt: null, reviewedById: null, emailSentAt: null,
             };
@@ -304,8 +306,7 @@ router.post('/register', sensitiveLimiter, validate(registerSchema), async (req,
         const verification = newVerificationCode(email);
         const accountData = {
             name,
-            address,
-            phoneNum: phone_num,
+            ...encryptUserContact({ address, phoneNum: phone_num }),
             role,
             responderUnit: role === 'respondent' ? responder_unit : null,
             password: await bcrypt.hash(password, 12),
@@ -574,7 +575,7 @@ router.get('/session', async (req, res) => {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies.token;
     if (!token) return res.json({ user: null });
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
         const user = await prisma.user.findUnique({ where: { id: decoded.id } });
         if (!user?.emailVerifiedAt || user.blockedAt || (decoded.sv ?? 0) !== user.sessionVersion) return res.json({ user: null });
         return res.json({ user: publicUser(user) });
@@ -590,8 +591,7 @@ router.patch('/profile', protect, validate(profileSchema), async (req, res, next
             where: { id: req.user.id },
             data: {
                 name: req.validatedBody.name,
-                address: req.validatedBody.address,
-                phoneNum: req.validatedBody.phone_num,
+                ...encryptUserContact({ address: req.validatedBody.address, phoneNum: req.validatedBody.phone_num }),
             },
         });
         await recordActivity(user, 'PROFILE_UPDATED', { subjectType: 'user', subjectId: user.id });
@@ -605,7 +605,7 @@ router.post('/logout', async (req, res) => {
         const authHeader = req.headers.authorization;
         const sessionToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies?.token;
         if (sessionToken) {
-            const { id } = jwt.verify(sessionToken, process.env.JWT_SECRET);
+            const { id } = jwt.verify(sessionToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
             const user = await prisma.user.findUnique({ where: { id } });
             if (user) await recordActivity(user, 'LOGOUT', { subjectType: 'user', subjectId: user.id });
         }

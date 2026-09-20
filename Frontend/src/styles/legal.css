@@ -1,0 +1,24 @@
+.legal-page { min-height: 100dvh; padding: 1.25rem; color: #202724; background: #f6f7f4; }
+.legal-wrap { width: min(100%, 840px); margin: 0 auto; }
+.legal-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 0 1.3rem; }
+.legal-brand { color: #245b51; font-size: 0.9rem; font-weight: 800; letter-spacing: 0.04em; text-decoration: none; }
+.legal-back { color: #435e4d; font-size: 0.83rem; text-decoration: none; }
+.legal-back:hover, .legal-footer a:hover { text-decoration: underline; }
+.legal-paper { padding: clamp(1.4rem, 4vw, 3rem); border: 1px solid #dce2dd; border-radius: 12px; background: #fff; }
+.legal-eyebrow { margin: 0 0 0.4rem; color: #658071; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.legal-paper h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -0.04em; }
+.legal-updated { margin: 0.5rem 0 1.4rem; color: #697a6d; font-size: 0.78rem; }
+.legal-draft { padding: 0.9rem 1rem; border: 1px solid #e7d9b6; border-radius: 8px; color: #70571d; background: #fbf7ec; font-size: 0.82rem; line-height: 1.55; }
+.legal-section { padding: 1.4rem 0; border-bottom: 1px solid #e8ece7; }
+.legal-section h2 { margin: 0 0 0.55rem; font-size: 1rem; }
+.legal-section p { margin: 0.55rem 0 0; color: #526358; font-size: 0.88rem; line-height: 1.7; }
+.legal-section a, .legal-footer a { color: #245b51; font-weight: 650; }
+.legal-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding-top: 1.4rem; font-size: 0.83rem; }
+html[data-theme='dark'] .legal-page { color: #edf2ec; background: #111815; }
+html[data-theme='dark'] .legal-paper { border-color: #35443a; background: #1a241e; }
+html[data-theme='dark'] .legal-brand, html[data-theme='dark'] .legal-section a, html[data-theme='dark'] .legal-footer a { color: #a9d7b1; }
+html[data-theme='dark'] .legal-back, html[data-theme='dark'] .legal-updated, html[data-theme='dark'] .legal-section p { color: #b0c0b2; }
+html[data-theme='dark'] .legal-eyebrow { color: #9bb8a0; }
+html[data-theme='dark'] .legal-section { border-color: #35443a; }
+html[data-theme='dark'] .legal-draft { border-color: #6d5a37; color: #f1d9a5; background: #302a1e; }
+@media (max-width: 600px) { .legal-page { padding: 0.8rem; } .legal-paper { padding: 1.35rem; } }

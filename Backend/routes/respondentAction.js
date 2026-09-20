@@ -4,6 +4,8 @@ import prisma from '../config/db.js';
 import { allowRoles, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { recordActivity } from '../services/activityLog.js';
+import { decryptEmergencyContact } from '../services/privateFields.js';
+import { userRateLimit } from '../middleware/userRateLimit.js';
 
 const router = express.Router();
 
@@ -40,7 +42,7 @@ function parseId(req, res) {
     return result.data.id;
 }
 
-router.use(protect);
+router.use(protect, userRateLimit(60, 'Too many responder requests. Please wait briefly and try again.'));
 
 router.get('/team', allowRoles('respondent'), async (req, res, next) => {
     try {
@@ -88,7 +90,7 @@ router.get('/queue', allowRoles('respondent', 'admin'), async (req, res, next) =
             orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
             take: 100,
         });
-        return res.json({ emergencies });
+        return res.json({ emergencies: emergencies.map(decryptEmergencyContact) });
     } catch (error) {
         next(error);
     }
@@ -116,7 +118,7 @@ router.patch('/:id/accept', allowRoles('respondent'), async (req, res, next) => 
         await recordActivity(req.user, 'EMERGENCY_ACCEPTED', {
             subjectType: 'emergency', subjectId: accepted.id, details: accepted.service,
         });
-        return res.json({ message: 'Emergency request accepted.', emergency: accepted });
+        return res.json({ message: 'Emergency request accepted.', emergency: decryptEmergencyContact(accepted) });
     } catch (error) {
         next(error);
     }
@@ -150,7 +152,7 @@ router.patch('/:id/status', allowRoles('respondent'), validate(statusSchema), as
         await recordActivity(req.user, nextStatus === 'EN_ROUTE' ? 'RESPONDER_EN_ROUTE' : 'EMERGENCY_RESOLVED', {
             subjectType: 'emergency', subjectId: emergency.id, details: emergency.service,
         });
-        return res.json({ message: 'Emergency status updated.', emergency });
+        return res.json({ message: 'Emergency status updated.', emergency: decryptEmergencyContact(emergency) });
     } catch (error) {
         next(error);
     }
@@ -173,7 +175,7 @@ router.patch('/:id/responder-location', allowRoles('respondent'), validate(respo
             return res.status(404).json({ message: 'Active assigned emergency request not found.' });
         }
         const emergency = await prisma.emergencyRequest.findUnique({ where: { id }, include: emergencyInclude });
-        return res.json({ message: 'Responder location updated.', emergency });
+        return res.json({ message: 'Responder location updated.', emergency: decryptEmergencyContact(emergency) });
     } catch (error) {
         next(error);
     }
