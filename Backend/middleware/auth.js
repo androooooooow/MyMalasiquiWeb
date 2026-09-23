@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
 import prisma from "../config/db.js";
 import { decryptUserContact } from '../services/privateFields.js';
+import { verifySessionToken } from '../services/sessionToken.js';
 
 export const protect = async (req, res, next) => {
     try{
@@ -20,7 +20,7 @@ export const protect = async (req, res, next) => {
             return res.status(401).json({message: "Not authorized, no token"});
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+        const decoded = verifySessionToken(token);
 
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
@@ -44,6 +44,7 @@ export const protect = async (req, res, next) => {
             role: user.role,
             responder_unit: user.responderUnit,
         };
+        req.sessionVersion = user.sessionVersion;
         next();
     }catch (error) {
         res.status(401).json({message: "Not authorized"});

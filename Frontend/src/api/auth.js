@@ -17,6 +17,10 @@ export async function fetchCurrentUser() {
   return data.user;
 }
 
+export async function refreshSession() {
+  await api.post('/auth/refresh');
+}
+
 export async function login(credentials) {
   const { data } = await api.post('/auth/login', credentials);
   return data;

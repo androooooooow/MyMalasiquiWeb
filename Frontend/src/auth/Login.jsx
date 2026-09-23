@@ -24,6 +24,7 @@ export default function Login({ onAuthenticated }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const sessionExpired = new URLSearchParams(window.location.search).get('expired') === '1';
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -87,10 +88,10 @@ export default function Login({ onAuthenticated }) {
       }
     >
       <form className="auth-form" onSubmit={handleSubmit}>
-        {error && (
+        {(error || sessionExpired) && (
           <div className="auth-alert" role="alert">
             <span aria-hidden="true">!</span>
-            <p>{error}</p>
+            <p>{error || 'Your session ended after 5 minutes of inactivity. Please sign in again.'}</p>
           </div>
         )}
 

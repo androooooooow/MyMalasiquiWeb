@@ -9,7 +9,10 @@ import { CheckEmail, VerifyEmail } from './auth/EmailVerification';
 import ForgotPassword from './auth/ForgotPassword';
 import ResponderApplicationPending from './auth/ResponderApplicationPending';
 import LegalPage from './pages/LegalPage';
-import { fetchCurrentUser } from './api/auth';
+import { fetchCurrentUser, logout, refreshSession } from './api/auth';
+
+const SESSION_IDLE_MS = 5 * 60 * 1000;
+const REFRESH_INTERVAL_MS = 30 * 1000;
 
 const previewRole = import.meta.env.DEV
   ? new URLSearchParams(window.location.search).get('previewRole')
@@ -46,6 +49,81 @@ function App() {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (!user || previewUser) return undefined;
+
+    let lastActivityAt = Date.now();
+    let lastRefreshAt = Date.now();
+    let refreshInFlight = false;
+    let signedOut = false;
+    let disposed = false;
+    let idleTimer;
+
+    function expireSession() {
+      if (signedOut || disposed) return;
+      signedOut = true;
+      setUser(null);
+      // The server token also expires after five minutes, even if this tab is closed.
+      logout().catch(() => {}).finally(() => {
+        window.location.replace('/login?expired=1');
+      });
+    }
+
+    function scheduleIdleCheck() {
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => {
+        if (Date.now() - lastActivityAt >= SESSION_IDLE_MS) expireSession();
+        else scheduleIdleCheck();
+      }, Math.max(0, SESSION_IDLE_MS - (Date.now() - lastActivityAt)));
+    }
+
+    function handleActivity() {
+      if (signedOut) return;
+      const now = Date.now();
+      // A backgrounded tab may have delayed timers. Do not revive an idle session.
+      if (now - lastActivityAt >= SESSION_IDLE_MS) {
+        expireSession();
+        return;
+      }
+      lastActivityAt = now;
+      scheduleIdleCheck();
+
+      if (!refreshInFlight && now - lastRefreshAt >= REFRESH_INTERVAL_MS) {
+        refreshInFlight = true;
+        refreshSession()
+          .then(() => { lastRefreshAt = Date.now(); })
+          .catch((error) => {
+            if (error?.response?.status === 401 || error?.response?.status === 403) expireSession();
+          })
+          .finally(() => { refreshInFlight = false; });
+      }
+    }
+
+    function checkOnReturn() {
+      if (document.visibilityState === 'visible' && Date.now() - lastActivityAt >= SESSION_IDLE_MS) {
+        expireSession();
+      }
+    }
+
+    const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'scroll'];
+    activityEvents.forEach((event) => window.addEventListener(event, handleActivity, { passive: true }));
+    document.addEventListener('visibilitychange', checkOnReturn);
+    scheduleIdleCheck();
+    // A page load is deliberate activity; renew a nearly expired cookie immediately.
+    refreshSession()
+      .then(() => { lastRefreshAt = Date.now(); })
+      .catch((error) => {
+        if (error?.response?.status === 401 || error?.response?.status === 403) expireSession();
+      });
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(idleTimer);
+      activityEvents.forEach((event) => window.removeEventListener(event, handleActivity));
+      document.removeEventListener('visibilitychange', checkOnReturn);
+    };
+  }, [user]);
 
   if (loading) {
     return (

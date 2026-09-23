@@ -14,6 +14,7 @@ import { trustedCertificates } from '../config/trustedCertificates.js';
 import { recordActivity } from '../services/activityLog.js';
 import { newVerificationCode, verificationDigest } from '../services/verificationCode.js';
 import { decryptUserContact, encryptUserContact } from '../services/privateFields.js';
+import { SESSION_IDLE_MS, signSessionToken, verifySessionToken } from '../services/sessionToken.js';
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -107,13 +108,9 @@ const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: SESSION_IDLE_MS,
     path: '/',
 };
-
-function generateSessionToken(user) {
-    return jwt.sign({ id: user.id, sv: user.sessionVersion }, process.env.JWT_SECRET, { expiresIn: '30d' });
-}
 
 function passwordResetDigest(email, code) {
     return crypto.createHmac('sha256', process.env.JWT_SECRET)
@@ -157,7 +154,7 @@ function publicUser(user) {
 }
 
 function issueSession(res, user) {
-    const token = generateSessionToken(user);
+    const token = signSessionToken(user);
     res.cookie('token', token, cookieOptions);
     return token;
 }
@@ -575,7 +572,7 @@ router.get('/session', async (req, res) => {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies.token;
     if (!token) return res.json({ user: null });
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+        const decoded = verifySessionToken(token);
         const user = await prisma.user.findUnique({ where: { id: decoded.id } });
         if (!user?.emailVerifiedAt || user.blockedAt || (decoded.sv ?? 0) !== user.sessionVersion) return res.json({ user: null });
         return res.json({ user: publicUser(user) });
@@ -585,6 +582,10 @@ router.get('/session', async (req, res) => {
 });
 
 router.get('/me', protect, (req, res) => res.json(req.user));
+router.post('/refresh', protect, (req, res) => {
+    const token = issueSession(res, { id: req.user.id, sessionVersion: req.sessionVersion });
+    res.json({ token });
+});
 router.patch('/profile', protect, validate(profileSchema), async (req, res, next) => {
     try {
         const user = await prisma.user.update({
