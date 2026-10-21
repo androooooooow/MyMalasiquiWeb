@@ -22,8 +22,7 @@ const allowedOrigins = new Set([
     process.env.MOBILE_URL,
 ].filter(Boolean));
 
-// Vite may be opened through either loopback hostname. CORS treats them as
-// distinct origins even though both refer to this computer.
+// Vite may be opened through either loopback hostname in local development.
 if (process.env.NODE_ENV !== 'production') {
     for (const origin of [...allowedOrigins]) {
         try {
@@ -42,13 +41,18 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const app = express();
+
+// Required on Render so express-rate-limit correctly tracks client IPs behind Render's reverse proxy
+app.set('trust proxy', 1);
+
 app.disable('x-powered-by');
 app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
+
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (e.g. mobile apps, Postman, curl)
+        // Allow requests with no origin (e.g. mobile apps, server-to-server, Postman)
         if (!origin || allowedOrigins.has(origin)) {
             callback(null, true);
         } else {
@@ -57,8 +61,20 @@ app.use(cors({
     },
     credentials: true,
 }));
+
 app.use(express.json({ limit: '20kb' }));
 app.use(cookieParser());
+
+// Root route so visiting the base URL confirms the API status
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'online',
+        service: 'MyMalasiqui API',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Protect API routes
 app.use('/api', requireTrustedBrowserOrigin(allowedOrigins));
 
 app.use('/api/auth', rateLimit({
@@ -68,6 +84,7 @@ app.use('/api/auth', rateLimit({
     legacyHeaders: false,
     message: { message: 'Too many authentication requests. Please try again later.' },
 }));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/emergencies', citizenRequestRoutes);
 app.use('/api/respondent-actions', respondentActionRoutes);
