@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import AppIcon from '../../components/AppIcon';
 import { createEmergencyRequest, fetchActiveEmergencyRequest, getEmergencyError } from '../../api/emergencies';
 
@@ -179,7 +180,24 @@ export default function EmergencyPage() {
                 return <li className={complete ? 'emergency-timeline__item emergency-timeline__item--complete' : 'emergency-timeline__item'} key={key}><span><AppIcon name={complete ? 'check' : 'clock'} size={15} /></span><div><strong>{label}</strong><small>{detail}</small></div></li>;
               })}
             </ol>
-            <div className="emergency-tracker__details"><p><strong>Requested by</strong><span>{emergency?.citizen?.name || 'Citizen'}</span></p><p><strong>Responder</strong><span>{emergency?.assignedResponder?.name || 'Not assigned yet'}</span></p><p><strong>Contact</strong><span>{emergency?.assignedResponder?.phoneNum || 'Available after assignment'}</span></p></div>
+            <div className="emergency-tracker__details">
+              <p><strong>Requested by</strong><span>{emergency?.citizen?.name || 'Citizen'}</span></p>
+              <p><strong>Responder</strong><span>{emergency?.assignedResponder?.name || 'Not assigned yet'}</span></p>
+              <p><strong>Contact</strong><span>{emergency?.assignedResponder?.phoneNum || 'Available after assignment'}</span></p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginTop: '1.1rem' }}>
+              <Link to="/citizen/messages" className="rescue-button rescue-button--primary rescue-button--small">
+                <AppIcon name="chat" size={15} /> Message responder
+              </Link>
+              {emergency?.assignedResponder?.phoneNum && (
+                <a
+                  href={`tel:${emergency.assignedResponder.phoneNum.replace(/[^\d+]/g, '')}`}
+                  className="rescue-button rescue-button--ghost rescue-button--small"
+                >
+                  <AppIcon name="phone" size={15} /> Call responder
+                </a>
+              )}
+            </div>
           </article>
           <article className="rescue-card emergency-tracker__map-card">
             <header className="rescue-card__header"><h2>Responder live location</h2><span className="rescue-status-pill">Auto-updates</span></header>
@@ -280,6 +298,20 @@ export default function EmergencyPage() {
               <label className="emergency-field emergency-field--wide">
                 <span>Nearby landmark or address</span>
                 <input name="landmark" type="text" maxLength="180" value={form.landmark} onChange={updateField} placeholder="Street, barangay, building, or visible landmark" />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.4rem' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--ink-500, #77847b)', alignSelf: 'center', marginRight: '0.2rem' }}>Quick suggestions:</span>
+                  {['Municipal Plaza', 'Public Market', 'Malasiqui Central School', 'Catholic Church', 'Barangay Hall'].map((landmarkName) => (
+                    <button
+                      key={landmarkName}
+                      type="button"
+                      className="rescue-button rescue-button--ghost"
+                      style={{ padding: '0.22rem 0.55rem', fontSize: '0.72rem', borderRadius: '5px' }}
+                      onClick={() => setForm((curr) => ({ ...curr, landmark: curr.landmark ? `${curr.landmark}, Near ${landmarkName}` : `Near ${landmarkName}` }))}
+                    >
+                      + Near {landmarkName}
+                    </button>
+                  ))}
+                </div>
               </label>
             </div>
           </section>

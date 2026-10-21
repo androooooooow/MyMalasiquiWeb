@@ -9,7 +9,9 @@ import { CheckEmail, VerifyEmail } from './auth/EmailVerification';
 import ForgotPassword from './auth/ForgotPassword';
 import ResponderApplicationPending from './auth/ResponderApplicationPending';
 import LegalPage from './pages/LegalPage';
+import LandingPage from './pages/LandingPage';
 import { fetchCurrentUser, logout, refreshSession } from './api/auth';
+import { ThemeProvider } from './components/ThemeProvider';
 
 const SESSION_IDLE_MS = 5 * 60 * 1000;
 const REFRESH_INTERVAL_MS = 30 * 1000;
@@ -144,8 +146,10 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to={homeRedirect()} replace />} />
+      <ThemeProvider authenticated={Boolean(user)}>
+        <Routes>
+        <Route path="/" element={user ? <Navigate to={homeRedirect()} replace /> : <LandingPage user={user} />} />
+        <Route path="/welcome" element={<LandingPage user={user} />} />
         <Route
           path="/respondent/*"
           element={
@@ -186,7 +190,8 @@ function App() {
         <Route path="/verify-email" element={user ? <Navigate to="/" replace /> : <VerifyEmail onAuthenticated={setUser} />} />
         <Route path="/Register" element={<Navigate to="/register" replace />} />
         <Route path="*" element={<Navigate to={homeRedirect()} replace />} />
-      </Routes>
+        </Routes>
+      </ThemeProvider>
     </Router>
   );
 }

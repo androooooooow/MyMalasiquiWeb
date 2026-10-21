@@ -15,19 +15,27 @@ function when(value) {
 export default function OverviewPage({ user, onNavigate }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function loadData(silent = false) {
+    if (!silent) setRefreshing(true);
+    try {
+      const result = await fetchAdminOverview();
+      setData(result);
+      setError('');
+    } catch (err) {
+      if (!silent) setError(adminError(err, 'Could not load command center data.'));
+    } finally {
+      if (!silent) setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
     let active = true;
-    async function load() {
-      try {
-        const result = await fetchAdminOverview();
-        if (active) { setData(result); setError(''); }
-      } catch (err) {
-        if (active) setError(adminError(err, 'Could not load command center data.'));
-      }
-    }
-    load();
-    const timer = window.setInterval(load, 15000);
+    loadData();
+    const timer = window.setInterval(() => {
+      if (active) loadData(true);
+    }, 15000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
 
@@ -40,17 +48,69 @@ export default function OverviewPage({ user, onNavigate }) {
           <h1 className="rescue-page-title">Command center</h1>
           <p className="rescue-page-lede">Welcome, {(user?.name || 'Administrator').split(' ')[0]}. Review incident activity and manage access to the rescue network.</p>
         </div>
-        <button className="rescue-button rescue-button--primary" type="button" onClick={() => onNavigate('analytics')}>
-          <AppIcon name="activity" size={17} /> View analytics
-        </button>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <button
+            className="rescue-button rescue-button--ghost"
+            type="button"
+            onClick={() => loadData()}
+            disabled={refreshing}
+            title="Refresh command center stats"
+          >
+            <AppIcon name="refresh" size={15} /> {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <button className="rescue-button rescue-button--primary" type="button" onClick={() => onNavigate('analytics')}>
+            <AppIcon name="activity" size={17} /> View analytics
+          </button>
+        </div>
       </div>
 
       {error && <p className="emergency-error" role="alert">{error}</p>}
       <section className="rescue-grid rescue-grid--4" aria-label="System totals">
-        <article className="rescue-card rescue-stat"><div className="rescue-stat__top"><span className="rescue-stat__icon"><AppIcon name="users" /></span></div><strong>{counts?.citizens ?? '—'}</strong><p>Citizens</p></article>
-        <article className="rescue-card rescue-stat"><div className="rescue-stat__top"><span className="rescue-stat__icon"><AppIcon name="shield" /></span></div><strong>{counts?.responders ?? '—'}</strong><p>Responders</p></article>
-        <article className="rescue-card rescue-stat"><div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--danger"><AppIcon name="alert" /></span></div><strong>{counts?.activeIncidents ?? '—'}</strong><p>Active incidents</p></article>
-        <article className="rescue-card rescue-stat"><div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--amber"><AppIcon name="clipboard" /></span></div><strong>{counts?.totalIncidents ?? '—'}</strong><p>Total incidents</p></article>
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('users')}
+          title="Click to manage citizens"
+        >
+          <div className="rescue-stat__top"><span className="rescue-stat__icon"><AppIcon name="users" /></span><span className="rescue-stat__trend">Users</span></div>
+          <strong>{counts?.citizens ?? '—'}</strong>
+          <p>Citizens</p>
+        </article>
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('applications')}
+          title="Click to review responder applications"
+        >
+          <div className="rescue-stat__top">
+            <span className="rescue-stat__icon"><AppIcon name="shield" /></span>
+            {counts?.pendingResponderApplications > 0 && (
+              <span className="rescue-status-pill rescue-status-pill--amber">{counts.pendingResponderApplications} pending</span>
+            )}
+          </div>
+          <strong>{counts?.responders ?? '—'}</strong>
+          <p>Responders</p>
+        </article>
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('analytics')}
+          title="Click to view active incidents in analytics"
+        >
+          <div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--danger"><AppIcon name="alert" /></span><span className="rescue-stat__trend">Live</span></div>
+          <strong>{counts?.activeIncidents ?? '—'}</strong>
+          <p>Active incidents</p>
+        </article>
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('analytics')}
+          title="Click to view total incident history"
+        >
+          <div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--amber"><AppIcon name="clipboard" /></span><span className="rescue-stat__trend">History</span></div>
+          <strong>{counts?.totalIncidents ?? '—'}</strong>
+          <p>Total incidents</p>
+        </article>
       </section>
 
       <section className="rescue-section operations-layout">

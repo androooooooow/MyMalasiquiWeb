@@ -1,4 +1,5 @@
 import { createContext, useContext, useLayoutEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import AppIcon from './AppIcon';
 
 const ThemeContext = createContext(null);
@@ -14,18 +15,23 @@ function initialTheme() {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-export function ThemeProvider({ children }) {
+export function ThemeProvider({ children, authenticated }) {
   const [theme, setTheme] = useState(initialTheme);
+  const { pathname } = useLocation();
+  const onDashboard = authenticated && /^\/(citizen|respondent|admin)(\/|$)/.test(pathname);
+  const visibleTheme = onDashboard ? theme : 'light';
 
   useLayoutEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
+    document.documentElement.dataset.theme = visibleTheme;
+    document.documentElement.style.colorScheme = visibleTheme;
     try {
-      window.localStorage.setItem(STORAGE_KEY, theme);
+      if (authenticated) window.localStorage.setItem(STORAGE_KEY, theme);
+      else window.localStorage.removeItem(STORAGE_KEY);
     } catch {
       // A disabled storage API should not prevent changing the current view.
     }
-  }, [theme]);
+    if (!authenticated && theme !== 'light') setTheme('light');
+  }, [authenticated, theme, visibleTheme]);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme: () => setTheme((current) => current === 'dark' ? 'light' : 'dark') }}>

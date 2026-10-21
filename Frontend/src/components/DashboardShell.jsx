@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import AppIcon from './AppIcon';
+import EmergencyHotlinesModal from './EmergencyHotlinesModal';
 import { ThemeToggle } from './ThemeProvider';
 import '../styles/dashboard.css';
 
@@ -19,6 +20,7 @@ export default function DashboardShell({
   const [navOpen, setNavOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
+  const [showHotlines, setShowHotlines] = useState(false);
   const activeItem = navItems.find((item) => item.key === activePage) || navItems[0];
   const today = new Intl.DateTimeFormat('en-PH', {
     weekday: 'short',
@@ -116,6 +118,19 @@ export default function DashboardShell({
             </div>
           </div>
           <div className="rescue-topbar__right">
+            <button
+              className="rescue-hotline-btn"
+              type="button"
+              onClick={() => setShowHotlines(true)}
+              title="Open official Malasiqui emergency telephone directory"
+            >
+              <AppIcon name="phone" size={14} />
+              <span>Hotlines</span>
+            </button>
+            <span className="rescue-net-status" title="Connected to Malasiqui Response Network">
+              <span className="rescue-net-dot" aria-hidden="true" />
+              <span>Network live</span>
+            </span>
             <span className="rescue-date">{today}</span>
             <ThemeToggle />
           </div>
@@ -123,6 +138,8 @@ export default function DashboardShell({
 
         <main className="rescue-main" id="dashboard-main">{children}</main>
       </div>
+
+      <EmergencyHotlinesModal isOpen={showHotlines} onClose={() => setShowHotlines(false)} />
     </div>
   );
 }

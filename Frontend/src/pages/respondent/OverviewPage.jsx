@@ -22,18 +22,70 @@ export default function OverviewPage({ user, incidents, loading, busyId, onNavig
         )}
       />
 
+      {pending > 0 && (
+        <div className="active-emergency-banner" style={{ background: 'linear-gradient(135deg, #fff5f3 0%, #fae6e4 100%)', borderColor: '#d94b45' }}>
+          <div className="active-emergency-banner__main">
+            <span className="active-emergency-banner__pulse" aria-hidden="true" />
+            <div>
+              <strong style={{ fontSize: '0.94rem', color: '#9c241b' }}>
+                Action Required: {pending} incoming request{pending > 1 ? 's' : ''} waiting for {unitLabel}
+              </strong>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#68201a' }}>
+                Review incident details and accept response assignment to notify the citizen.
+              </p>
+            </div>
+          </div>
+          <button
+            className="rescue-button rescue-button--danger rescue-button--small"
+            type="button"
+            onClick={() => onNavigate('incidents')}
+          >
+            Open priority queue <AppIcon name="chevron" size={15} />
+          </button>
+        </div>
+      )}
+
       <section className="rescue-grid rescue-grid--3">
-        <article className="rescue-card rescue-stat">
-          <div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--danger"><AppIcon name="alert" /></span><span className="rescue-stat__trend">Needs action</span></div>
-          <strong>{pending}</strong><p>Waiting requests</p>
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('incidents')}
+          title="Click to view pending requests"
+        >
+          <div className="rescue-stat__top">
+            <span className="rescue-stat__icon rescue-stat__icon--danger"><AppIcon name="alert" /></span>
+            <span className="rescue-stat__trend">Needs action</span>
+          </div>
+          <strong>{pending}</strong>
+          <p>Waiting requests</p>
         </article>
-        <article className="rescue-card rescue-stat">
-          <div className="rescue-stat__top"><span className="rescue-stat__icon"><AppIcon name="clipboard" /></span><span className="rescue-stat__trend">Your queue</span></div>
-          <strong>{assigned}</strong><p>Assigned incidents</p>
+
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('incidents')}
+          title="Click to view assigned incidents"
+        >
+          <div className="rescue-stat__top">
+            <span className="rescue-stat__icon"><AppIcon name="clipboard" /></span>
+            <span className="rescue-stat__trend">Your queue</span>
+          </div>
+          <strong>{assigned}</strong>
+          <p>Assigned incidents</p>
         </article>
-        <article className="rescue-card rescue-stat">
-          <div className="rescue-stat__top"><span className="rescue-stat__icon rescue-stat__icon--amber"><AppIcon name="clock" /></span><span className="rescue-stat__trend">Live</span></div>
-          <strong>{incidents.length}</strong><p>Active incidents</p>
+
+        <article
+          className="rescue-card rescue-stat"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onNavigate('dispatch')}
+          title="Click to open dispatch map"
+        >
+          <div className="rescue-stat__top">
+            <span className="rescue-stat__icon rescue-stat__icon--amber"><AppIcon name="clock" /></span>
+            <span className="rescue-stat__trend">Live map</span>
+          </div>
+          <strong>{incidents.length}</strong>
+          <p>Active incidents</p>
         </article>
       </section>
 

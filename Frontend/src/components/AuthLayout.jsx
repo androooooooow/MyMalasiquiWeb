@@ -39,10 +39,10 @@ export default function AuthLayout({
     <main className="auth-page">
       <div className={`auth-card${isRegister ? ' auth-card--register' : ''}`}>
         <header className="auth-visual">
-          <div className="auth-brand">
+          <Link className="auth-brand" to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
             <RescueMark className="auth-brand__mark" />
             <span>RESCUE APP</span>
-          </div>
+          </Link>
           <span className="auth-visual__place">Malasiqui response network</span>
         </header>
 

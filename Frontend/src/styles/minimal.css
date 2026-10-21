@@ -394,3 +394,804 @@ html[data-theme='dark'] .admin-pagination button[aria-current='page'] { border-c
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* ==========================================================================
+   Interactive UI/UX Enhancements for Workspaces & Dashboards
+   ========================================================================== */
+
+/* Enhanced Card Elevation & Micro-interactions */
+.rescue-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(32, 39, 36, 0.035), 0 1px 3px rgba(32, 39, 36, 0.03);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.rescue-stat {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.rescue-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(32, 39, 36, 0.06);
+}
+
+.rescue-button {
+  transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+.rescue-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.rescue-button--primary:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(36, 91, 81, 0.22);
+  transform: translateY(-1px);
+}
+.rescue-button--danger:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(183, 70, 60, 0.24);
+  transform: translateY(-1px);
+}
+
+.citizen-action {
+  transition: transform 180ms cubic-bezier(0.2, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease;
+}
+.citizen-action:hover {
+  transform: translateY(-3px);
+  border-color: #7fa490;
+  box-shadow: 0 8px 22px rgba(36, 91, 81, 0.07);
+}
+
+.emergency-service {
+  transition: transform 180ms cubic-bezier(0.2, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease;
+}
+.emergency-service:hover {
+  transform: translateY(-2px);
+  border-color: #245b51;
+  box-shadow: 0 8px 20px rgba(36, 91, 81, 0.09);
+}
+
+/* Topbar additions */
+.rescue-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rescue-hotline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 7px;
+  border: 1px solid #d4ddd6;
+  background: #fff;
+  color: #b7463c;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+.rescue-hotline-btn:hover {
+  border-color: #b7463c;
+  background: #fdf5f4;
+  transform: translateY(-1px);
+}
+
+.rescue-net-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: 999px;
+  background: #edf5f0;
+  color: #245b51;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.rescue-net-dot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #249969;
+}
+.rescue-net-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid #249969;
+  animation: net-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes net-ping {
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Active Incident Live Banner */
+.active-emergency-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 1.45rem;
+  border-radius: 12px;
+  border: 1.5px solid #e3a9a2;
+  background: linear-gradient(135deg, #fff7f6 0%, #faecea 100%);
+  color: #8c2a22;
+  box-shadow: 0 8px 24px rgba(183, 70, 60, 0.08);
+  animation: banner-glow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes banner-glow {
+  0% { border-color: #e3a9a2; }
+  100% { border-color: #b7463c; box-shadow: 0 8px 26px rgba(183, 70, 60, 0.16); }
+}
+
+.active-emergency-banner__main {
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+}
+
+.active-emergency-banner__pulse {
+  position: relative;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: #b7463c;
+  flex-shrink: 0;
+}
+.active-emergency-banner__pulse::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid #b7463c;
+  animation: net-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Citizen Readiness Progress & GPS Test */
+.citizen-progress-track {
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  background: #e5ece6;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.citizen-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--teal-600, #245b51);
+  transition: width 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gps-test-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.gps-test-note--loading {
+  background: #f2f5f3;
+  color: #4a5c51;
+}
+.gps-test-note--success {
+  background: #edf7f1;
+  color: #1e6146;
+  border: 1px solid #cce5d6;
+}
+.gps-test-note--error {
+  background: #fff3f1;
+  color: #a4382e;
+  border: 1px solid #f6cfca;
+}
+
+/* Hotline Strip Card on Citizen Overview */
+.hotline-strip-card {
+  padding: 1.25rem 1.4rem;
+  margin-top: 1.45rem;
+}
+
+.hotline-strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.95rem;
+}
+
+.hotline-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.hotline-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 9px;
+  border: 1px solid var(--line, #dce2dd);
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.hotline-chip:hover {
+  transform: translateY(-2px);
+  border-color: #8bb39e;
+  box-shadow: 0 6px 16px rgba(36, 91, 81, 0.08);
+}
+
+.hotline-chip__icon {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.hotline-chip strong {
+  display: block;
+  font-size: 0.83rem;
+  color: var(--ink-900, #202724);
+}
+.hotline-chip small {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ink-600, #65746a);
+  margin-top: 0.1rem;
+}
+
+/* Hotlines Modal */
+.hotline-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(18, 25, 22, 0.48);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  animation: modal-fade-in 180ms ease both;
+}
+
+.hotline-modal-card {
+  width: min(100%, 640px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #d4ddd7;
+  box-shadow: 0 24px 60px rgba(18, 30, 24, 0.18);
+  overflow: hidden;
+  animation: modal-slide-up 220ms cubic-bezier(0.2, 1, 0.3, 1) both;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modal-slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hotline-modal-header {
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #e7ece8;
+}
+
+.hotline-modal-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #faeae8;
+  color: #b7463c;
+  flex-shrink: 0;
+}
+
+.hotline-modal-close {
+  border: 0;
+  background: transparent;
+  color: #6d7f73;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+}
+.hotline-modal-close:hover {
+  background: #f0f4f1;
+  color: #202724;
+}
+
+.hotline-modal-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1.35rem;
+  background: #f7faf8;
+  border-bottom: 1px solid #e7ece8;
+}
+.hotline-modal-search input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 0.84rem;
+  color: var(--ink-900, #202724);
+}
+.hotline-search-clear {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #8b9890;
+}
+
+.hotline-modal-list {
+  padding: 1rem 1.35rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hotline-card-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid #dfe6e1;
+  background: #fff;
+  transition: border-color 140ms ease;
+}
+.hotline-card-item:hover {
+  border-color: #9bb5a7;
+}
+
+.hotline-card-info {
+  flex: 1;
+  min-width: 240px;
+}
+
+.hotline-badge {
+  padding: 0.18rem 0.5rem;
+  border-radius: 5px;
+  background: #eaf3ed;
+  color: #245b51;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.hotline-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.hotline-num-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+}
+.hotline-num-label {
+  color: #74847a;
+  font-size: 0.72rem;
+}
+.hotline-link {
+  font-weight: 700;
+  color: #245b51;
+  text-decoration: none;
+}
+.hotline-link:hover {
+  text-decoration: underline;
+}
+
+.hotline-copy-btn {
+  border: 0;
+  background: transparent;
+  color: #7d9084;
+  cursor: pointer;
+  padding: 0.15rem;
+  border-radius: 4px;
+}
+.hotline-copy-btn:hover {
+  color: #245b51;
+  background: #eef5f1;
+}
+
+.hotline-call-btn {
+  text-decoration: none;
+  font-weight: 700;
+  align-self: flex-start;
+  margin-top: 0.2rem;
+}
+
+.hotline-modal-footer {
+  padding: 0.85rem 1.35rem;
+  border-top: 1px solid #e7ece8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.74rem;
+  color: #74847a;
+  background: #fafcfa;
+}
+
+/* Knowledge Center Search & Interactive Reader */
+.knowledge-controls {
+  margin-bottom: 1.4rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.knowledge-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line, #dce2dd);
+  color: #65746a;
+}
+.knowledge-search-input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  font-size: 0.86rem;
+  color: var(--ink-900, #202724);
+  background: transparent;
+}
+.knowledge-search-clear {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #8b9890;
+}
+
+.knowledge-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.knowledge-tag-btn {
+  padding: 0.38rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line, #dce2dd);
+  background: #fff;
+  color: #55665d;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+.knowledge-tag-btn:hover {
+  border-color: #8fb3a0;
+  color: #202724;
+}
+.knowledge-tag-btn--active {
+  background: #245b51;
+  border-color: #245b51;
+  color: #fff;
+}
+
+/* Guide Reader Modal */
+.guide-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(18, 25, 22, 0.48);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  animation: modal-fade-in 180ms ease both;
+}
+
+.guide-modal-card {
+  width: min(100%, 680px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #d4ddd7;
+  box-shadow: 0 24px 60px rgba(18, 30, 24, 0.18);
+  overflow: hidden;
+  animation: modal-slide-up 220ms cubic-bezier(0.2, 1, 0.3, 1) both;
+}
+
+.guide-modal-head {
+  padding: 1.25rem 1.45rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #e7ece8;
+}
+
+.guide-modal-close {
+  border: 0;
+  background: transparent;
+  color: #6d7f73;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+}
+.guide-modal-close:hover {
+  background: #f0f4f1;
+  color: #202724;
+}
+
+.guide-modal-body {
+  padding: 1.35rem 1.45rem;
+  overflow-y: auto;
+}
+
+.guide-steps-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.guide-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 9px;
+  border: 1px solid #e1e7e3;
+  background: #fafcfa;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+.guide-step-item:hover {
+  border-color: #9cb5a6;
+}
+.guide-step-item--done {
+  background: #f1f8f4;
+  border-color: #b7dac7;
+}
+
+.guide-step-check {
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 1.65rem;
+  border-radius: 50%;
+  border: 1px solid #9fb3a6;
+  background: #fff;
+  color: #245b51;
+  font-size: 0.74rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  margin-top: 0.15rem;
+}
+.guide-step-item--done .guide-step-check {
+  background: #245b51;
+  border-color: #245b51;
+  color: #fff;
+}
+
+.guide-step-item strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--ink-900, #202724);
+}
+.guide-step-item p {
+  margin: 0.25rem 0 0;
+  font-size: 0.81rem;
+  color: var(--ink-600, #65746a);
+  line-height: 1.5;
+}
+
+.guide-modal-hotline {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: #fbeee8;
+  border: 1px solid #eed0c5;
+  color: #943228;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+}
+
+.guide-modal-foot {
+  padding: 0.95rem 1.45rem;
+  border-top: 1px solid #e7ece8;
+  display: flex;
+  justify-content: flex-end;
+  background: #fafcfa;
+}
+
+/* Respondent Incident Filters & Pulse Dot */
+.incident-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--line, #dce2dd);
+  background: #fafbfa;
+}
+
+.incident-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.incident-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 7px;
+  border: 1px solid var(--line, #dce2dd);
+  background: #fff;
+  color: var(--ink-600, #65746a);
+  font-size: 0.76rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+.incident-pill-btn:hover {
+  border-color: #8fb3a0;
+  color: #202724;
+}
+.incident-pill-btn--active {
+  background: #245b51;
+  border-color: #245b51;
+  color: #fff;
+}
+
+.incident-pulse-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #e04f43;
+  animation: net-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.incident-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+  background: #fff;
+  border: 1px solid var(--line, #dce2dd);
+  color: #74847a;
+}
+.incident-search-wrap input {
+  border: 0;
+  outline: none;
+  font-size: 0.78rem;
+  color: var(--ink-900, #202724);
+  background: transparent;
+  width: 160px;
+}
+.incident-search-clear {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #8b9890;
+}
+
+/* Dark theme overrides for new components */
+html[data-theme='dark'] .rescue-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+}
+html[data-theme='dark'] .rescue-hotline-btn {
+  background: #24352b;
+  border-color: #45564a;
+  color: #f18a7d;
+}
+html[data-theme='dark'] .rescue-hotline-btn:hover {
+  background: #2f4035;
+  border-color: #f18a7d;
+}
+html[data-theme='dark'] .rescue-net-status {
+  background: #23382b;
+  color: #a4e0b5;
+}
+html[data-theme='dark'] .active-emergency-banner {
+  background: #392523;
+  border-color: #7a4642;
+  color: #fed9d4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+html[data-theme='dark'] .citizen-progress-track {
+  background: #2a382e;
+}
+html[data-theme='dark'] .citizen-progress-bar {
+  background: #86c59b;
+}
+html[data-theme='dark'] .hotline-strip-card,
+html[data-theme='dark'] .hotline-chip,
+html[data-theme='dark'] .hotline-modal-card,
+html[data-theme='dark'] .guide-modal-card {
+  background: #1a241e;
+  border-color: #35443a;
+  color: #edf2ec;
+}
+html[data-theme='dark'] .hotline-chip strong {
+  color: #edf2ec;
+}
+html[data-theme='dark'] .hotline-chip:hover {
+  border-color: #6f9c7a;
+}
+html[data-theme='dark'] .hotline-modal-header,
+html[data-theme='dark'] .hotline-modal-footer,
+html[data-theme='dark'] .guide-modal-head,
+html[data-theme='dark'] .guide-modal-foot,
+html[data-theme='dark'] .incident-filter-bar {
+  border-color: #35443a;
+  background: #202e25;
+}
+html[data-theme='dark'] .hotline-modal-search,
+html[data-theme='dark'] .knowledge-search-wrap,
+html[data-theme='dark'] .incident-search-wrap {
+  border-color: #35443a;
+  background: #202e25;
+  color: #edf2ec;
+}
+html[data-theme='dark'] .hotline-card-item,
+html[data-theme='dark'] .guide-step-item {
+  border-color: #35443a;
+  background: #202e25;
+}
+html[data-theme='dark'] .guide-step-item--done {
+  background: #253d2d;
+  border-color: #4b7457;
+}
+html[data-theme='dark'] .guide-step-item strong {
+  color: #edf2ec;
+}
+html[data-theme='dark'] .guide-modal-hotline {
+  background: #392523;
+  border-color: #72423e;
+  color: #ffccc6;
+}
+html[data-theme='dark'] .incident-pill-btn,
+html[data-theme='dark'] .knowledge-tag-btn {
+  border-color: #35443a;
+  background: #202e25;
+  color: #c4d1c4;
+}
+html[data-theme='dark'] .incident-pill-btn--active,
+html[data-theme='dark'] .knowledge-tag-btn--active {
+  background: #86c59b;
+  border-color: #86c59b;
+  color: #102018;
+}
+
